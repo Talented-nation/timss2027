@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIMSS ARCADE </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF6B6B;
+            --secondary: #4ECDC4;
+            --accent: #FFD166;
+            --purple: #9B5DE5;
+            --blue: #118AB2;
+            --green: #06D6A0;
+            --light: #F8F9FA;
+            --dark: #2D3047;
+            --light-purple: #E6E6FA;
+            --very-light-purple: #F5F0FF;
+        }
+
+        body {
+            /* CHANGED: Updated background to the requested color */
+            background: #F2FFFC;
+            color: var(--dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            font-family: 'Nunito', sans-serif;
+            position: relative;
+        }
+
+        /* ----------------------------------- */
+        /* Header with Stars Animation */
+        /* ----------------------------------- */
+        .header {
+            /* CHANGED: Updated gradient to the requested colors */
+            background: linear-gradient(135deg, #00A36C 0%, #2AAA8A 100%);
+            color: #f8f9fa;
+            text-align: center;
+            padding: 60px 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stars {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .stars::before, .stars::after {
+            content: '';
+            position: absolute;
+            background-color: transparent;
+            border-radius: 50%;
+            box-shadow: 
+                10px 10px 0 #fff, 30px 50px 0 #e0f2f7, 80px 100px 0 #fff, 150px 20px 0 #e0f2f7, 
+                200px 150px 0 #fff, 250px 70px 0 #e0f2f7, 300px 180px 0 #fff, 350px 40px 0 #e0f2f7,
+                400px 120px 0 #fff, 450px 60px 0 #e0f2f7, 500px 190px 0 #fff, 550px 10px 0 #e0f2f7;
+            width: 2px;
+            height: 2px;
+            opacity: 0.8;
+            animation: meteor-shower 15s linear infinite;
+        }
+
+        .stars::after {
+            box-shadow: 
+                600px 30px 0 #fff, 650px 140px 0 #e0f2f7, 700px 50px 0 #fff, 750px 170px 0 #e0f2f7, 
+                800px 80px 0 #fff, 850px 110px 0 #e0f2f7, 900px 20px 0 #fff, 950px 160px 0 #e0f2f7, 
+                1000px 90px 0 #fff, 1050px 10px 0 #e0f2f7, 1100px 150px 0 #fff, 1150px 50px 0 #e0f2f7;
+            animation: meteor-shower 20s linear infinite reverse; 
+        }
+
+        @keyframes meteor-shower {
+            0% { transform: translateY(-50px); }
+            100% { transform: translateY(200px); }
+        }
+
+        .header h1, .header p {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 5px;
+            letter-spacing: 1.5px;
+            z-index: 2;
+            position: relative;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 25px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        nav a {
+            /* CHANGED: Updated button colors to match the sky */
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s;
+            position: relative;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        nav a:hover {
+            /* CHANGED: Updated hover effect to match the sky theme */
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        nav a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 25px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        nav a:hover::before {
+            opacity: 1;
+        }
+
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 0;
+            gap: 40px;
+        }
+
+        .hero-frame {
+            background: white;
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            /* CHANGED: Updated border color to green instead of purple */
+            border: 5px dashed #4CAF50;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .hero-frame h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            font-family: 'Comic Neue', cursive;
+            /* NEW: Added vibrant green gradient text */
+            background: linear-gradient(135deg, #00A36C, #2AAA8A, #4CAF50, #06D6A0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            animation: colorShift 3s ease-in-out infinite alternate;
+            position: relative;
+            display: block;
+            width: 100%;
+            /* NEW: Center the text properly */
+            margin: 0 auto 40px auto;
+            padding: 0;
+        }
+
+        /* NEW: Animation for the vibrant text */
+        @keyframes colorShift {
+            0% {
+                background: linear-gradient(135deg, #00A36C, #2AAA8A, #4CAF50, #06D6A0);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                transform: scale(1);
+            }
+            100% {
+                background: linear-gradient(135deg, #06D6A0, #4CAF50, #2AAA8A, #00A36C);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                transform: scale(1.02);
+            }
+        }
+
+        /* NEW: Decorative elements around the title */
+        .hero-frame h2::before,
+        .hero-frame h2::after {
+            content: "✨";
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        .hero-frame h2::before {
+            right: -30px;
+        }
+
+        .hero-frame h2::after {
+            left: -30px;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.7; transform: translateY(-50%) scale(1); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.2); }
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: var(--light);
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-top: 8px solid #00A36C;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .card:nth-child(1) {
+            border-top-color: #00A36C;
+        }
+
+        .card:nth-child(2) {
+            border-top-color: #2AAA8A;
+        }
+
+        .card:nth-child(3) {
+            border-top-color: #4CAF50;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            /* CHANGED: Updated all icons to green shades */
+            color: #00A36C;
+        }
+
+        .card:nth-child(1) .card-icon {
+            color: #00A36C;
+        }
+
+        .card:nth-child(2) .card-icon {
+            color: #2AAA8A;
+        }
+
+        .card:nth-child(3) .card-icon {
+            color: #4CAF50;
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            font-family: 'Comic Neue', cursive;
+        }
+
+        .card p {
+            line-height: 1.6;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            /* CHANGED: Updated border color to green instead of secondary */
+            border-top: 3px dashed #4CAF50;
+            margin-top: 60px;
+            font-size: 1rem;
+            color: var(--dark);
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+
+            .hero-frame {
+                padding: 25px;
+            }
+
+            .hero-frame h2 {
+                font-size: 2rem;
+            }
+
+            .cards-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            nav a {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+
+            /* NEW: Adjust sparkle positions for mobile */
+            .hero-frame h2::before,
+            .hero-frame h2::after {
+                display: none; /* Hide sparkles on small screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with Stars Animation -->
+    <header class="header">
+        <div class="stars"></div>
+        <h1>TIMSS ARACADE</h1>
+        <p>مغامرات في الرياضيات والعلوم </p>
+        <nav>
+            <ul>
+                <li><a href="#">الرئيسية</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <section class="hero">
+            <div class="hero-frame">
+                <h2>أنشطة العلوم الممتعة</h2>
+                <div class="cards-container">
+                    <a href="https://talented-nation.github.io/timss2027/aisci.html" class="card" target="_blank">
+                        <div class="card-icon">
+                            <i class="fas fa-laptop-code"></i>
+                        </div>
+                        <h3>منصة تدريب العلوم الذكية</h3>
+                        <p>تدرب على مهارات العلوم من خلال منصة تفاعلية ممتعة</p>
+                    </a>
+                    <a href="https://talented-nation.github.io/timss2027/scigame.html" class="card" target="_blank">
+                        <div class="card-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>مسابقة كأس العلوم</h3>
+                        <p>شارك في مسابقة شيقة وتنافس مع أصدقائك في حل المسائل</p>
+                    </a>
+                    <a href="https://talented-nation.github.io/timss2027/arcade1.html" class="card" target="_blank">
+                        <div class="card-icon">
+                            <i class="fas fa-puzzle-piece"></i>
+                        </div>
+                        <h3>أنشطة العلوم</h3>
+                        <p>استمتع بمجموعة متنوعة من الأنشطة والألعاب التعليمية</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>TIMSS ARCADE  &copy; 2025 | تعلم الرياضيات والعلوم الممتع</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- Firebase Setup ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let auth, app;
+
+        // Function to initialize Firebase and sign in the user
+        async function initializeFirebase() {
+            if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase configuration not found. Skipping initialization.");
+                return null;
+            }
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                console.log("Firebase initialized and user signed in.");
+                return auth;
+            } catch (error) {
+                console.error("Firebase authentication error, attempting anonymous sign-in fallback:", error);
+                 try {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                    return auth;
+                } catch (anonError) {
+                    console.error("Anonymous sign-in failed:", anonError);
+                    return null;
+                }
+            }
+        }
+
+        // Initialize Firebase when the script runs
+        let firebaseReady = false;
+        initializeFirebase().then(result => {
+            if (result) {
+                firebaseReady = true;
+            }
+        });
+    </script>
+</body>
+</html>
