@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أجزاء الهيكل العظمي</title><!-- تم تحديث عنوان المتصفح -->
+    <style>
+        /* ---------------------------------- */
+        /* CSS Styling: التنسيقات             */
+        /* ---------------------------------- */
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --background-light: #f4f7f9;
+            --card-background: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--background-light);
+            margin: 0;
+            padding: 20px;
+            text-align: right; 
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 1200px;
+            gap: 20px;
+        }
+
+        .word-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            min-width: 180px; 
+            flex-shrink: 0; /* لمنع القائمة من التقلص */
+        }
+
+        .word-list h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+        }
+
+        .draggable-word {
+            background-color: var(--success-color);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: grab; 
+            text-align: center;
+            font-weight: bold;
+            transition: transform 0.2s ease, background-color 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-size: 1rem;
+        }
+
+        .draggable-word:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+        
+        /* إخفاء الكلمة بعد سحبها بشكل صحيح */
+        .draggable-word.hidden {
+            display: none !important;
+        }
+
+        .skeleton-area {
+            position: relative;
+            text-align: center;
+            padding: 10px;
+            flex-grow: 1; /* للسماح لها بالتمدد */
+        }
+
+        .skeleton-image {
+            width: 100%;
+            max-width: 400px; /* التحكم في الحجم الأقصى للصورة */
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .drop-zone {
+            position: absolute;
+            width: 100px;  
+            height: 35px;
+            border: 2px dashed var(--primary-color);
+            background-color: rgba(0, 123, 255, 0.1);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            transition: background-color 0.2s, border-color 0.2s;
+            z-index: 10;
+            user-select: none; /* لمنع تحديد النص */
+        }
+        
+        /* تأثير الهوفر عند السحب فوق المنطقة */
+        .drop-zone.hover {
+            background-color: rgba(0, 123, 255, 0.3);
+            border-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .drop-zone.filled {
+            border: 2px solid var(--success-color);
+            background-color: #e6ffe6;
+            color: #333;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        }
+        
+        /* تحديد مواقع مناطق الإفلات الجديدة والمُعدَّلة على الصورة */
+        
+        /* يمين الهيكل العظمي (منظورنا) - للكلمات: أضلاع، جمجمة، مفصل المرفق، كاحل */
+        .drop-zone[data-target="أضلاع"] { top: 25%; right: auto; left: 23%; bottom: auto; } /* بجانب القفص الصدري */
+        .drop-zone[data-target="جمجمة"] { top: 5%; right: 27%; left: auto; bottom: auto; }  /* بجانب الرأس */
+        .drop-zone[data-target="مفصل المرفق"] { top: 35%; right: 16%; left: auto; bottom: auto; } /* عند مفصل الذراع */
+        .drop-zone[data-target="كاحل"] { top: 87%; right: 22%; left: auto; bottom: auto; }  /* عند القدم */
+
+        /* يسار الهيكل العظمي (منظورنا) - للكلمات: العمود الفقري، مفصل الركبة، عظم القص، عظم الفخذ */
+        .drop-zone[data-target="العمود الفقري"] { top: 35%; left: 23%; right: auto; bottom: auto; } /* بجانب مركز الظهر */
+        .drop-zone[data-target="مفصل الركبة"] { top: 69%; left: 21%; right: auto; bottom: auto; } /* عند الركبة */
+        .drop-zone[data-target="عظم القص"] { top: 10%; left: 27%; right: auto; bottom: auto; } /* عند مركز الصدر */
+        .drop-zone[data-target="عظم الفخذ"] { top: 65%; left: auto; right: 22%; bottom: auto; } /* أعلى الساق */
+
+        /* لضمان التجاوب مع شاشات أصغر */
+        @media (max-width: 900px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .word-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+                order: 2; /* وضع قوائم الكلمات في الأسفل على الهاتف */
+            }
+            .skeleton-area {
+                width: 95%;
+                order: 1; /* وضع الصورة في الأعلى على الهاتف */
+            }
+            .skeleton-image {
+                max-width: 300px;
+            }
+            .drop-zone {
+                width: 80px;
+                height: 30px;
+                font-size: 0.8rem;
+            }
+            /* تعديل مواقع الإفلات على الهاتف لتكون أقرب للهيكل (تقليل النسبة المئوية) */
+            .drop-zone[data-target="أضلاع"] { top: 38%; right: 10%; left: auto; bottom: auto; }
+            .drop-zone[data-target="جمجمة"] { top: 5%; right: 10%; left: auto; bottom: auto; }
+            .drop-zone[data-target="مفصل المرفق"] { top: 50%; right: 10%; left: auto; bottom: auto; }
+            .drop-zone[data-target="كاحل"] { top: 92%; right: 10%; left: auto; bottom: auto; }
+
+            .drop-zone[data-target="العمود الفقري"] { top: 45%; left: 20%; right: auto; bottom: auto; }
+            .drop-zone[data-target="مفصل الركبة"] { top: 75%; left: 15%; right: auto; bottom: auto; }
+            .drop-zone[data-target="عظم القص"] { top: 30%; left: 15%; right: auto; bottom: auto; }
+            .drop-zone[data-target="عظم الفخذ"] { top: 65%; left: 10%; right: auto; bottom: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>أجزاء الهيكل العظمي</h1><!-- تم تحديث العنوان الرئيسي -->
+    
+    <div class="game-container">
+        
+        <!-- قائمة الكلمات على اليمين (الجديدة) -->
+        <div class="word-list">
+            <h2>أجزاء للجانب الأيمن</h2>
+            <!-- الكلمات الجديدة لجهة اليمين -->
+            <div class="draggable-word" draggable="true" id="d_أضلاع">أضلاع</div>
+            <div class="draggable-word" draggable="true" id="d_جمجمة">جمجمة</div>
+            <div class="draggable-word" draggable="true" id="d_مفصل المرفق">مفصل المرفق</div>
+            <div class="draggable-word" draggable="true" id="d_كاحل">كاحل</div>
+        </div>
+
+        <!-- منطقة الهيكل العظمي في المنتصف -->
+        <div class="skeleton-area">
+            <!-- استخدام الصورة المرفوعة -->
+            <!-- Image of human skeleton highlighting the ribs, skull, elbow joint, ankle, vertebral column, knee joint, sternum, and femur -->
+            <img src="skeleton.png" alt="صورة هيكل عظمي بشري" class="skeleton-image">
+            
+            <!-- مناطق الإفلات (Drop Zones) - تم تحديث بيانات الهدف والمواقع -->
+            <!-- المناطق على اليمين (منظورنا) -->
+            <div class="drop-zone" data-target="أضلاع" aria-label="منطقة أضلاع"></div>
+            <div class="drop-zone" data-target="جمجمة" aria-label="منطقة جمجمة"></div>
+            <div class="drop-zone" data-target="مفصل المرفق" aria-label="منطقة مفصل المرفق"></div>
+            <div class="drop-zone" data-target="كاحل" aria-label="منطقة كاحل"></div>
+            
+            <!-- المناطق على اليسار (منظورنا) -->
+            <div class="drop-zone" data-target="العمود الفقري" aria-label="منطقة العمود الفقري"></div>
+            <div class="drop-zone" data-target="مفصل الركبة" aria-label="منطقة مفصل الركبة"></div>
+            <div class="drop-zone" data-target="عظم القص" aria-label="منطقة عظم القص"></div>
+            <div class="drop-zone" data-target="عظم الفخذ" aria-label="منطقة عظم الفخذ"></div>
+        </div>
+        
+        <!-- قائمة الكلمات على اليسار (الجديدة) -->
+        <div class="word-list">
+            <h2>أجزاء للجانب الأيسر</h2>
+            <!-- الكلمات الجديدة لجهة اليسار -->
+            <div class="draggable-word" draggable="true" id="d_العمود الفقري">العمود الفقري</div>
+            <div class="draggable-word" draggable="true" id="d_مفصل الركبة">مفصل الركبة</div>
+            <div class="draggable-word" draggable="true" id="d_عظم القص">عظم القص</div>
+            <div class="draggable-word" draggable="true" id="d_عظم الفخذ">عظم الفخذ</div>
+        </div>
+
+    </div>
+
+    <div class="message-container">
+        <div id="message" class="message">انقر واسحب الكلمة إلى المكان الصحيح.</div>
+    </div>
+
+    <script>
+        // ----------------------------------
+        // JavaScript Logic: منطق اللعبة
+        // ----------------------------------
+        const draggables = document.querySelectorAll('.draggable-word');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        const messageDisplay = document.getElementById('message');
+        let correctDrops = 0;
+        const totalTargets = dropZones.length; // 8 مناطق إفلات
+
+        // دالة لعرض الرسائل وتصغيرها بعد 3 ثوانٍ
+        function showMessage(text, className) {
+            messageDisplay.textContent = text;
+            messageDisplay.className = 'message ' + className;
+            setTimeout(() => {
+                // إرجاع الرسالة إلى الحالة الأولية بعد 3 ثوانٍ
+                if (correctDrops < totalTargets) {
+                     messageDisplay.textContent = 'انقر واسحب الكلمة إلى المكان الصحيح.';
+                     messageDisplay.className = 'message';
+                }
+            }, 3000);
+        }
+        
+        // 1. منطق السحب (Drag)
+        draggables.forEach(word => {
+            word.addEventListener('dragstart', (e) => {
+                // حفظ ID الكلمة التي يتم سحبها (مثال: d_الركبة)
+                e.dataTransfer.setData('text/plain', e.target.id);
+                // إضافة فئة للمساعدة في التنسيق أثناء السحب
+                e.target.classList.add('dragging');
+            });
+            word.addEventListener('dragend', (e) => {
+                // إزالة فئة السحب
+                e.target.classList.remove('dragging');
+            });
+        });
+
+        // 2. منطق الإفلات (Drop)
+        dropZones.forEach(zone => {
+            // منع السلوك الافتراضي لتمكين الإفلات
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                // منع التوهج إذا كانت المنطقة ممتلئة بالفعل
+                if (!zone.classList.contains('filled')) {
+                    zone.classList.add('hover');
+                }
+            });
+
+            // إزالة تأثير الهوفر عند المغادرة
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('hover');
+            });
+
+            // معالجة حدث الإفلات
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('hover');
+
+                // استرجاع ID الكلمة المسحوبة
+                const draggedId = e.dataTransfer.getData('text/plain');
+                const draggedElement = document.getElementById(draggedId);
+                
+                // التحقق للتأكد من أننا نسحب كلمة
+                if (!draggedElement || !draggedElement.classList.contains('draggable-word')) {
+                    return;
+                }
+
+                const draggedWord = draggedElement.textContent.trim();
+
+                // استرجاع الكلمة المستهدفة من منطقة الإفلات
+                const targetWord = zone.getAttribute('data-target');
+
+                // التحقق من المطابقة
+                if (draggedWord === targetWord) {
+                    if (!zone.classList.contains('filled')) {
+                        // إفلات صحيح وجديد
+                        zone.textContent = draggedWord;
+                        zone.classList.add('filled');
+                        draggedElement.classList.add('hidden'); // إخفاء الكلمة المسحوبة
+                        zone.setAttribute('aria-label', draggedWord + ' - تم الإفلات بنجاح'); // تحديث الوصف لقارئات الشاشة
+                        showMessage('أحسنت! هذا هو ' + targetWord, 'success');
+                        correctDrops++;
+
+                        // التحقق من اكتمال اللعبة
+                        if (correctDrops === totalTargets) {
+                            showMessage('🎉 تهانينا! لقد أكملت اللعبة بنجاح! جميع الأجزاء صحيحة! 🎉', 'complete');
+                        }
+                    } else {
+                        // محاولة الإفلات في منطقة ممتلئة
+                        showMessage('هذه المنطقة ممتلئة بالفعل. حاول في منطقة أخرى.', 'error');
+                    }
+                } else {
+                    // إفلات خاطئ
+                    showMessage('للأسف! هذه ليست المنطقة الصحيحة لـ ' + draggedWord, 'error');
+                }
+            });
+        });
+        
+        // رسالة الترحيب الأولية
+        showMessage('انقر واسحب الكلمة إلى المكان الصحيح.', 'complete');
+
+    </script>
+</body>
+</html>
