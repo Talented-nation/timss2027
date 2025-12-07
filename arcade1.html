@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIMSS ARCADE - عالم المرح والتعلم</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-pink: #ff00ff;
+            --neon-blue: #00ffff;
+            --neon-green: #39ff14;
+            --neon-yellow: #ffff00;
+            --neon-purple: #9d00ff;
+            --dark-bg: #0a0a1f;
+            --panel-bg: rgba(20, 20, 40, 0.9);
+            --glow-shadow: 0 0 15px currentColor;
+        }
+
+        body {
+            background: 
+                radial-gradient(circle at 20% 30%, var(--neon-purple) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, var(--neon-blue) 0%, transparent 40%),
+                linear-gradient(135deg, #000428 0%, #0a0a1f 50%, #000428 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            font-family: 'Orbitron', sans-serif;
+            position: relative;
+        }
+
+        /* Scan Lines Effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 255, 255, 0.05) 0px,
+                    rgba(0, 255, 255, 0.05) 1px,
+                    transparent 1px,
+                    transparent 2px
+                );
+            pointer-events: none;
+            z-index: 1;
+            animation: scanline 10s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        /* Grid Background */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Arcade Header */
+        .arcade-header {
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 255, 0.2) 0%, 
+                rgba(0, 255, 255, 0.2) 100%);
+            backdrop-filter: blur(10px);
+            border: 3px solid var(--neon-pink);
+            border-radius: 0 0 30px 30px;
+            padding: 30px 20px;
+            margin: 0 auto 50px;
+            max-width: 1400px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 0 50px rgba(255, 0, 255, 0.5),
+                0 0 100px rgba(0, 255, 255, 0.3);
+            animation: headerGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes headerGlow {
+            0% { box-shadow: 0 0 30px rgba(255, 0, 255, 0.5); }
+            100% { box-shadow: 0 0 60px rgba(0, 255, 255, 0.7); }
+        }
+
+        .arcade-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, 
+                var(--neon-pink), 
+                var(--neon-blue), 
+                var(--neon-green),
+                var(--neon-yellow));
+            animation: rgbFlow 2s linear infinite;
+        }
+
+        @keyframes rgbFlow {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .main-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, 
+                var(--neon-pink), 
+                var(--neon-blue), 
+                var(--neon-green));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            margin-bottom: 15px;
+            animation: textGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes textGlow {
+            0% { text-shadow: 0 0 10px var(--neon-pink); }
+            100% { text-shadow: 0 0 20px var(--neon-blue); }
+        }
+
+        .subtitle {
+            font-size: 1.8rem;
+            color: var(--neon-yellow);
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        /* زر الرئيسية الجديد */
+        .home-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, 
+                var(--neon-pink), 
+                var(--neon-purple));
+            color: white;
+            text-decoration: none;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+            border-radius: 25px;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .home-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.7);
+            background: linear-gradient(135deg, 
+                var(--neon-blue), 
+                var(--neon-purple));
+        }
+
+        .home-button:active {
+            transform: translateY(0) scale(1);
+        }
+
+        .home-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1), 
+                rgba(255, 255, 255, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: -1;
+        }
+
+        .home-button:hover::before {
+            opacity: 1;
+        }
+
+        .designer {
+            font-size: 1.2rem;
+            color: var(--neon-green);
+            opacity: 0.9;
+        }
+
+        /* Game Console Container */
+        .game-console {
+            max-width: 1400px;
+            margin: 0 auto 50px;
+            background: var(--panel-bg);
+            border: 4px solid var(--neon-blue);
+            border-radius: 25px;
+            padding: 40px;
+            position: relative;
+            box-shadow: 
+                inset 0 0 50px rgba(0, 255, 255, 0.2),
+                0 0 40px rgba(0, 255, 255, 0.4);
+        }
+
+        .console-top {
+            display: flex;
+            justify-content: center; /* تم التعديل لتوسيط النص */
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px dashed var(--neon-pink);
+        }
+
+        .console-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.2rem;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 15px currentColor;
+            text-align: center; /* إضافة توسيط للنص */
+        }
+
+        /* إزالة قسم الإحصائيات */
+        .game-stats {
+            display: none; /* تم إخفاء الإحصائيات */
+        }
+
+        .stat {
+            display: none; /* تم إخفاء الإحصائيات */
+        }
+
+        /* Game Grid */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 255, 0.2), 
+                rgba(0, 255, 255, 0.2));
+            border: 3px solid transparent;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, 
+                var(--neon-pink), 
+                var(--neon-blue), 
+                var(--neon-green));
+            border-radius: 22px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-card:hover::before {
+            opacity: 1;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.4);
+        }
+
+        .game-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        .game-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .game-desc {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        /* إزالة Control Panel */
+        .control-panel {
+            display: none; /* تم إزالة Control Panel */
+        }
+
+        .joystick {
+            display: none; /* تم إزالة Joystick */
+        }
+
+        .buttons {
+            display: none; /* تم إزالة الأزرار */
+        }
+
+        /* Floating Elements */
+        .floating-element {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: transparent;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .floating-element:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            animation: float1 20s linear infinite;
+            box-shadow: 0 0 40px var(--neon-pink);
+        }
+
+        .floating-element:nth-child(2) {
+            top: 60%;
+            right: 15%;
+            animation: float2 25s linear infinite;
+            box-shadow: 0 0 40px var(--neon-blue);
+        }
+
+        .floating-element:nth-child(3) {
+            bottom: 30%;
+            left: 20%;
+            animation: float3 30s linear infinite;
+            box-shadow: 0 0 40px var(--neon-green);
+        }
+
+        @keyframes float1 {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(100px, 100px) rotate(90deg); }
+            50% { transform: translate(200px, 0) rotate(180deg); }
+            75% { transform: translate(100px, -100px) rotate(270deg); }
+        }
+
+        @keyframes float2 {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(-150px, 50px) rotate(120deg); }
+            66% { transform: translate(150px, -50px) rotate(240deg); }
+        }
+
+        @keyframes float3 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 150px) scale(1.5); }
+        }
+
+        /* Footer */
+        .arcade-footer {
+            text-align: center;
+            padding: 30px;
+            border-top: 3px solid var(--neon-purple);
+            margin-top: 60px;
+            background: rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .footer-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .power-light {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: powerPulse 1s ease-in-out infinite alternate;
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        @keyframes powerPulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-title { font-size: 2.8rem; }
+            .game-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .main-title { font-size: 2rem; }
+            .subtitle { font-size: 1.3rem; }
+            .home-button { font-size: 0.9rem; padding: 10px 25px; }
+            .game-grid { grid-template-columns: 1fr; }
+            .console-top { flex-direction: column; gap: 20px; }
+        }
+
+        @media (max-width: 480px) {
+            .main-title { font-size: 1.5rem; }
+            .home-button { font-size: 0.8rem; padding: 8px 20px; }
+            .game-card { padding: 20px; }
+            .game-icon { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Background Elements -->
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+
+    <!-- Arcade Header -->
+    <header class="arcade-header">
+        <div class="header-content">
+            <h1 class="main-title">TIMSS ARCADE</h1>
+            <p class="subtitle">عالم المرح والتعلم</p>
+            <!-- زر الرئيسية المضاف -->
+            <a href="#" class="home-button">الرئيسية</a>
+        </div>
+    </header>
+
+    <!-- Game Console -->
+    <div class="game-console">
+        <div class="console-top">
+            <h2 class="console-title">منصة الألعاب التعليمية</h2>
+        </div>
+
+        <div class="game-grid">
+            <div class="game-card" onclick="window.open('https://talented-nation.github.io/timss2027/shadow.html', '_blank')">
+                <div class="game-icon">
+                    <!-- تم تغيير الأيقونة من gamepad إلى binoculars -->
+                    <i class="fas fa-binoculars"></i>
+                </div>
+                <h3 class="game-title">مستكشف الظل</h3>
+                <p class="game-desc">حرك الشمس واكتشف كيف يتغير الظل!!</p>
+            </div>
+
+            <div class="game-card" onclick="window.open('https://talented-nation.github.io/timss2027/change.html', '_blank')">
+                <div class="game-icon">
+                    <i class="fas fa-flask"></i>
+                </div>
+                <h3 class="game-title">مطابقة التغيرات</h3>
+                <p class="game-desc">اكتشف وطابق التغيرات الكيميائية والفيزيائية في التجارب!</p>
+            </div>
+
+            <div class="game-card" onclick="window.open('https://talented-nation.github.io/timss2027/skeleton.html', '_blank')">
+                <div class="game-icon">
+                    <i class="fas fa-skull"></i>
+                </div>
+                <h3 class="game-title">استكشاف الهيكل العظمي</h3>
+                <p class="game-desc">تعرف على أجزاء الهيكل العظمي البشري وأسماء العظام!</p>
+            </div>
+
+            <div class="game-card" onclick="window.open('https://talented-nation.github.io/timss2027/food chain/foodchain.html', '_blank')">
+                <div class="game-icon">
+                    <i class="fas fa-link"></i>
+                </div>
+                <h3 class="game-title">تحدي السلسة الغذائية</h3>
+                <p class="game-desc">افهم كيفية انتقال الطاقة في الأنظمة البيئية المختلفة!</p>
+            </div>
+
+            <div class="game-card" onclick="window.open('https://talented-nation.github.io/timss2027/chemo.html', '_blank')">
+                <div class="game-icon">
+                    <i class="fas fa-atom"></i>
+                </div>
+                <h3 class="game-title">صائد الجزيئات</h3>
+                <p class="game-desc">اصطاد الجزيئات والذرات وتعلم تركيب المواد المختلفة!</p>
+            </div>
+
+            <div class="game-card" onclick="window.open('https://talented-nation.github.io/timss2027/animal.html', '_blank')">
+                <div class="game-icon">
+                    <i class="fas fa-cat"></i>
+                </div>
+                <h3 class="game-title">الخلية الحيوانية</h3>
+                <p class="game-desc">استكشف مكونات الخلية الحيوانية ووظائف كل عضية فيها!</p>
+            </div>
+
+            <div class="game-card" onclick="window.open('https://talented-nation.github.io/timss2027/plant.html', '_blank')">
+                <div class="game-icon">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <h3 class="game-title">الخلية النباتية</h3>
+                <p class="game-desc">اكتشف الفروقات بين الخلية النباتية والخلية الحيوانية!</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="arcade-footer">
+        <div class="power-light"></div>
+        <p class="footer-text">TIMSS ARCADE © 2025 | مغامرات تعليمية لا تنتهي!</p>
+    </footer>
+
+    <script>
+        // Add interactivity to game cards
+        document.querySelectorAll('.game-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.background = 'linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(0, 255, 255, 0.3))';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.background = 'linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(0, 255, 255, 0.2))';
+            });
+        });
+
+        // إضافة تفاعلية لزر الرئيسية
+        document.querySelector('.home-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            // هنا يمكن إضافة الرابط المناسب للصفحة الرئيسية
+            window.location.href = 'index.html'; // أو الرابط المناسب
+        });
+    </script>
+</body>
+</html>
