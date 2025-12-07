@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الخلية النباتية - الصف الرابع</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0fdf4;
+            user-select: none;
+        }
+        
+        /* Common Styles */
+        .btn-primary {
+            background-color: #059669; /* Green for plant theme */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #047857;
+        }
+
+        /* Learning Phase Styles */
+        .match-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .match-card.selected {
+            ring: 4px;
+            ring-color: #facc15; /* yellow-400 */
+            background-color: #fef08a; /* yellow-200 */
+        }
+        .match-card.matched {
+            background-color: #d1fae5; /* green-100 */
+            border-color: #34d399; /* green-400 */
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        /* Game Phase Styles */
+        .draggable-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: none;
+        }
+        .draggable-item:active {
+            transform: scale(0.95);
+        }
+        .draggable-item.correct {
+            background-color: #10b981 !important; /* Emerald green */
+            color: white;
+            cursor: default;
+            box-shadow: none;
+            border: 2px solid #059669;
+        }
+        .drop-zone {
+            transition: all 0.3s ease;
+            opacity: 0.6;
+        }
+        .drop-zone:hover, .drop-zone.active {
+            opacity: 1;
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 8px rgba(20, 255, 100, 0.8));
+        }
+        .cell-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .hidden { display: none !important; }
+        
+        /* Animations */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 bg-gradient-to-b from-green-50 to-lime-100">
+
+    <!-- Header -->
+    <header class="text-center mb-6 w-full max-w-4xl flex justify-between items-center bg-white/70 p-4 rounded-xl backdrop-blur-sm">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-green-800">رحلة الخلية النباتية</h1>
+            <p class="text-sm text-gray-600">الصف الرابع الابتدائي</p>
+        </div>
+        <div class="flex gap-2 text-sm font-bold">
+            <div id="step-1-indicator" class="px-3 py-1 bg-green-600 text-white rounded-full">1. التعلم</div>
+            <div id="step-2-indicator" class="px-3 py-1 bg-gray-200 text-gray-500 rounded-full">2. التطبيق</div>
+        </div>
+    </header>
+
+    <!-- PHASE 1: Learning / Matching -->
+    <div id="phase-learning" class="w-full max-w-4xl fade-in">
+        <div class="text-center mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">طابق المفهوم بالتعريف الصحيح</h2>
+            <p class="text-gray-600">اضغط على اسم الجزء، ثم اضغط على الوصف المناسب له.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Concepts Column -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-green-700 text-center mb-2">أجزاء الخلية النباتية</h3>
+                <div id="concepts-list" class="flex flex-col gap-3"></div>
+            </div>
+
+            <!-- Definitions Column -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-blue-700 text-center mb-2">الوظيفة / التعريف</h3>
+                <div id="definitions-list" class="flex flex-col gap-3"></div>
+            </div>
+        </div>
+
+        <!-- Next Button (Hidden initially) -->
+        <div id="learning-complete" class="hidden text-center mt-8">
+            <div class="bg-green-100 border border-green-300 p-4 rounded-lg inline-block mb-4">
+                <p class="text-green-800 font-bold text-lg">أحسنت! لقد تعلمت وظائف الخلية النباتية.</p>
+            </div>
+            <br>
+            <button onclick="startPracticePhase()" class="btn-primary text-xl shadow-lg transform hover:scale-105 transition-all">
+                انتقل إلى تركيب الخلية ⬅
+            </button>
+        </div>
+    </div>
+
+    <!-- PHASE 2: Game / Assembly -->
+    <div id="phase-practice" class="hidden w-full max-w-6xl flex-col lg:flex-row gap-8 items-center justify-center fade-in">
+        
+        <!-- Game Board (The Cell) -->
+        <div class="relative cell-container order-2 lg:order-1 animate-float">
+            <!-- SVG Drawing of Plant Cell (Rectangular Shape) -->
+            <svg viewBox="0 0 500 400" class="w-full h-auto drop-shadow-2xl">
+                
+                <!-- Cell Wall (Jidar Al-Khaliya) - Outer Layer -->
+                <rect id="zone-wall" x="50" y="50" width="400" height="300" rx="10" ry="10"
+                      class="drop-zone cursor-pointer fill-green-800/20 stroke-green-800 stroke-4" />
+
+                <!-- Cell Membrane (Ghishaa Al-Khaliya) - Inner Layer -->
+                <rect id="zone-membrane" x="60" y="60" width="380" height="280" rx="8" ry="8"
+                      class="drop-zone cursor-pointer fill-green-500/20 stroke-green-600 stroke-2" />
+
+                <!-- Cytoplasm (Siteblazm) - The Area inside the membrane -->
+                <rect id="zone-cytoplasm" x="65" y="65" width="370" height="270" rx="6" ry="6"
+                      class="drop-zone cursor-pointer fill-lime-100 opacity-60" />
+                
+                <!-- Large Central Vacuole (Fajwa Markaziya) - Dominates the center -->
+                <rect id="zone-vacuole" x="150" y="100" width="250" height="200" rx="15" ry="15"
+                      class="drop-zone cursor-pointer fill-blue-300 stroke-blue-500 stroke-2" />
+
+                <!-- Nucleus (Al-Nawaa) - Pushed to the side -->
+                <g id="zone-nucleus" class="drop-zone cursor-pointer">
+                    <circle cx="100" cy="100" r="30" class="fill-pink-500 stroke-pink-700 stroke-2" />
+                    <circle cx="100" cy="100" r="10" class="fill-pink-300 opacity-50" />
+                </g>
+
+                <!-- Chloroplasts (Blastidat Khadraa) - Small floating organelles -->
+                <g id="zone-chloroplast" class="drop-zone cursor-pointer">
+                    <!-- Chloroplast 1 -->
+                    <path d="M410 80 A 15 10 0 0 1 410 100 A 15 10 0 0 1 410 80 Z" class="fill-yellow-400 stroke-yellow-600" transform="rotate(20, 410, 90)"/>
+                    <!-- Chloroplast 2 -->
+                    <path d="M100 320 A 15 10 0 0 1 100 340 A 15 10 0 0 1 100 320 Z" class="fill-yellow-400 stroke-yellow-600" transform="rotate(-10, 100, 330)"/>
+                    <!-- Chloroplast 3 -->
+                    <path d="M400 320 A 15 10 0 0 1 400 340 A 15 10 0 0 1 400 320 Z" class="fill-yellow-400 stroke-yellow-600" transform="rotate(45, 400, 330)"/>
+                </g>
+            </svg>
+
+            <!-- Success Overlay -->
+            <div id="game-complete" class="hidden absolute inset-0 flex items-center justify-center bg-white/90 rounded-xl z-20">
+                <div class="text-center p-4">
+                    <h2 class="text-4xl font-bold text-green-600 mb-2">ممتاز! 🎉</h2>
+                    <p class="text-gray-700">لقد أتممت الدرس بنجاح عن الخلية النباتية.</p>
+                    <button onclick="location.reload()" class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">ابدأ من جديد</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Labels / Inventory -->
+        <div class="flex flex-col gap-4 w-full max-w-md order-1 lg:order-2">
+            <div class="bg-white p-6 rounded-2xl shadow-xl border-2 border-green-100">
+                <h3 class="text-xl font-bold text-gray-700 mb-4 text-center border-b pb-2">ضع الاسم في المكان الصحيح</h3>
+                <p class="text-xs text-center text-gray-400 mb-2">اضغط الاسم ثم اضغط مكانه في الرسم</p>
+                
+                <div id="labels-container" class="grid grid-cols-2 gap-3">
+                    <!-- Items will be generated by JS -->
+                </div>
+            </div>
+
+            <!-- Feedback Area -->
+            <div id="feedback-area" class="hidden bg-yellow-50 p-4 rounded-xl border border-yellow-200 shadow-sm animate-pulse">
+                <h4 id="feedback-title" class="font-bold text-yellow-800 text-lg"></h4>
+                <p id="feedback-text" class="text-yellow-700 text-sm mt-1"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Effects -->
+    <audio id="success-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3"></audio>
+    <audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"></audio>
+    <audio id="error-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-electronic-retro-block-hit-2185.mp3"></audio>
+
+    <script>
+        // Data Source - أجزاء الخلية النباتية
+        const cellParts = [
+            {
+                id: 'wall',
+                name: 'جدار الخلية',
+                color: 'bg-green-700',
+                description: 'غلاف خارجي صلب يوفر الدعم والحماية للخلية.',
+                targetId: 'zone-wall'
+            },
+            {
+                id: 'membrane',
+                name: 'غشاء الخلية',
+                color: 'bg-green-500',
+                description: 'طبقة رقيقة تنظم مرور المواد داخل وخارج الخلية.',
+                targetId: 'zone-membrane'
+            },
+            {
+                id: 'nucleus',
+                name: 'النواة',
+                color: 'bg-pink-600',
+                description: 'مركز التحكم في الخلية، وتحتوي على المادة الوراثية.',
+                targetId: 'zone-nucleus'
+            },
+            {
+                id: 'vacuole',
+                name: 'فجوة مركزية كبيرة',
+                color: 'bg-blue-400',
+                description: 'تخزن الماء والغذاء، وتدعم شكل الخلية النباتية.',
+                targetId: 'zone-vacuole'
+            },
+            {
+                id: 'chloroplast',
+                name: 'بلاستيدة خضراء',
+                color: 'bg-yellow-500',
+                description: 'تقوم بعملية البناء الضوئي وصنع الغذاء للنبات.',
+                targetId: 'zone-chloroplast'
+            },
+            {
+                id: 'cytoplasm',
+                name: 'السيتوبلازم',
+                color: 'bg-lime-300',
+                description: 'مادة هلامية تملأ الخلية وتسبح فيها العضيات.',
+                targetId: 'zone-cytoplasm'
+            }
+        ];
+
+        // --- Phase 1: Matching Game Logic ---
+        let selectedConcept = null;
+        let selectedDefinition = null;
+        let matchesFound = 0;
+
+        function initLearningPhase() {
+            const conceptsList = document.getElementById('concepts-list');
+            const definitionsList = document.getElementById('definitions-list');
+            
+            // Shuffle arrays independently
+            const shuffledConcepts = [...cellParts].sort(() => Math.random() - 0.5);
+            const shuffledDefs = [...cellParts].sort(() => Math.random() - 0.5);
+
+            shuffledConcepts.forEach(part => {
+                const el = document.createElement('div');
+                el.className = 'match-card p-4 bg-white border-2 border-green-100 rounded-lg shadow-sm text-center font-bold text-green-800';
+                el.textContent = part.name;
+                el.dataset.id = part.id;
+                el.dataset.type = 'concept';
+                el.onclick = () => handleMatchClick(el);
+                conceptsList.appendChild(el);
+            });
+
+            shuffledDefs.forEach(part => {
+                const el = document.createElement('div');
+                el.className = 'match-card p-4 bg-white border-2 border-blue-100 rounded-lg shadow-sm text-sm text-gray-700 flex items-center justify-center h-full';
+                el.textContent = part.description;
+                el.dataset.id = part.id;
+                el.dataset.type = 'definition';
+                el.onclick = () => handleMatchClick(el);
+                definitionsList.appendChild(el);
+            });
+        }
+
+        function handleMatchClick(el) {
+            if (el.classList.contains('matched')) return;
+
+            // Handle Selection Visuals
+            const type = el.dataset.type;
+            
+            // Clear previous selection of same type
+            const currentSelected = type === 'concept' ? selectedConcept : selectedDefinition;
+            if (currentSelected) currentSelected.classList.remove('ring-4', 'ring-yellow-400', 'bg-yellow-100');
+            
+            // Set new selection
+            el.classList.add('ring-4', 'ring-yellow-400', 'bg-yellow-100');
+            
+            if (type === 'concept') selectedConcept = el;
+            else selectedDefinition = el;
+
+            // Check if we have both sides selected
+            if (selectedConcept && selectedDefinition) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            if (selectedConcept.dataset.id === selectedDefinition.dataset.id) {
+                // Correct Match
+                playSound('success-sound');
+                
+                [selectedConcept, selectedDefinition].forEach(el => {
+                    el.classList.remove('ring-4', 'ring-yellow-400', 'bg-yellow-100');
+                    el.classList.add('matched', 'bg-green-100', 'border-green-400');
+                    el.innerHTML += ' <span class="text-green-600">✓</span>';
+                });
+                
+                matchesFound++;
+                selectedConcept = null;
+                selectedDefinition = null;
+
+                if (matchesFound === cellParts.length) {
+                    playSound('win-sound');
+                    document.getElementById('learning-complete').classList.remove('hidden');
+                    launchConfetti();
+                }
+
+            } else {
+                // Wrong Match
+                playSound('error-sound');
+                
+                [selectedConcept, selectedDefinition].forEach(el => {
+                    el.classList.add('bg-red-200');
+                    setTimeout(() => {
+                        el.classList.remove('bg-red-200', 'ring-4', 'ring-yellow-400', 'bg-yellow-100');
+                    }, 800);
+                });
+
+                selectedConcept = null;
+                selectedDefinition = null;
+            }
+        }
+
+        function startPracticePhase() {
+            // Hide Phase 1
+            document.getElementById('phase-learning').classList.add('hidden');
+            
+            // Update Header Indicators
+            document.getElementById('step-1-indicator').classList.replace('bg-green-600', 'bg-green-800');
+            document.getElementById('step-1-indicator').textContent = '✓ التعلم';
+            
+            document.getElementById('step-2-indicator').classList.replace('bg-gray-200', 'bg-green-600');
+            document.getElementById('step-2-indicator').classList.replace('text-gray-500', 'text-white');
+            
+            // Show Phase 2
+            const phase2 = document.getElementById('phase-practice');
+            phase2.classList.remove('hidden');
+            phase2.classList.add('flex'); // Because it was flex before hiding
+            
+            // Initialize Phase 2 Logic
+            initGamePhase();
+        }
+
+        // --- Phase 2: Assembly Game Logic ---
+        let gameSelectedItem = null;
+        let gameCompletedCount = 0;
+
+        function initGamePhase() {
+            const container = document.getElementById('labels-container');
+            const shuffledParts = [...cellParts].sort(() => Math.random() - 0.5);
+
+            shuffledParts.forEach(part => {
+                const el = document.createElement('div');
+                el.className = `draggable-item ${part.color} text-white font-bold p-3 rounded-lg text-center shadow-md select-none hover:scale-105 active:scale-95`;
+                el.textContent = part.name;
+                el.dataset.id = part.id;
+                
+                el.addEventListener('click', () => selectGameItem(el, part));
+                container.appendChild(el);
+            });
+
+            // CORRECTED LOGIC: Use part.targetId which is the ID of the SVG element
+            cellParts.forEach(part => {
+                const zone = document.getElementById(part.targetId);
+                if (zone) {
+                    zone.addEventListener('click', (e) => handleZoneClick(part.targetId));
+                }
+            });
+        }
+
+        function selectGameItem(element, partData) {
+            if (element.classList.contains('correct')) return;
+
+            document.querySelectorAll('.draggable-item').forEach(el => {
+                if(!el.classList.contains('correct')) el.classList.remove('ring-4', 'ring-yellow-400', 'bg-yellow-100');
+            });
+
+            element.classList.add('ring-4', 'ring-yellow-400');
+            gameSelectedItem = { element, data: partData };
+            
+            showFeedback('اختر المكان', `لقد اخترت: ${partData.name}. الآن اضغط على مكانه الصحيح في الرسم.`, false, 'bg-blue-50', 'border-blue-200', 'text-blue-800', 'text-blue-700');
+        }
+
+        function handleZoneClick(clickedTargetId) {
+            if (!gameSelectedItem) {
+                showFeedback('تنبيه', 'الرجاء اختيار اسم الجزء أولاً من القائمة.', false, 'bg-red-50', 'border-red-200', 'text-red-800', 'text-red-700');
+                return;
+            }
+
+            // CHECK: Compare the targetId of the selected item with the ID of the clicked SVG zone.
+            if (gameSelectedItem.data.targetId === clickedTargetId) {
+                handleCorrectAnswer();
+            } else {
+                handleWrongAnswer();
+            }
+        }
+
+        function handleCorrectAnswer() {
+            playSound('success-sound');
+
+            gameSelectedItem.element.classList.remove('ring-4', 'ring-yellow-400');
+            gameSelectedItem.element.classList.add('correct');
+            gameSelectedItem.element.innerHTML = `✓ ${gameSelectedItem.data.name}`;
+            
+            // Show feedback
+            showFeedback(`صحيح!`, `أحسنت، ${gameSelectedItem.data.name} في مكانه الصحيح.`, true);
+
+            const zone = document.getElementById(gameSelectedItem.data.targetId);
+            // Highlight the correct zone temporarily
+            zone.style.fill = '#10b981'; 
+            setTimeout(() => { 
+                zone.style.fill = ''; // Clear fill after a short period (reverts to CSS styles)
+            }, 1000);
+
+            gameSelectedItem = null;
+            gameCompletedCount++;
+
+            if (gameCompletedCount === cellParts.length) {
+                setTimeout(() => {
+                    playSound('win-sound');
+                    document.getElementById('game-complete').classList.remove('hidden');
+                    launchConfetti();
+                }, 1000);
+            }
+        }
+
+        function handleWrongAnswer() {
+            playSound('error-sound');
+            gameSelectedItem.element.classList.add('bg-red-500');
+            setTimeout(() => gameSelectedItem.element.classList.remove('bg-red-500'), 500);
+            showFeedback('حاول مرة أخرى', 'هذا ليس المكان الصحيح لهذا الجزء.', false, 'bg-red-50', 'border-red-200', 'text-red-800', 'text-red-700');
+        }
+
+        function showFeedback(title, text, isSuccess = false, bgColor = null, borderColor = null, titleColor = null, textColor = null) {
+            const box = document.getElementById('feedback-area');
+            const titleEl = document.getElementById('feedback-title');
+            const textEl = document.getElementById('feedback-text');
+
+            box.classList.remove('hidden', 'bg-green-50', 'border-green-200', 'bg-yellow-50', 'border-yellow-200', 'bg-red-50', 'border-red-200', 'bg-blue-50', 'border-blue-200');
+            titleEl.classList.remove('text-green-800', 'text-yellow-800', 'text-red-800', 'text-blue-800');
+            textEl.classList.remove('text-green-700', 'text-yellow-700', 'text-red-700', 'text-blue-700');
+
+            // Default colors if not provided
+            if (isSuccess) {
+                bgColor = bgColor || 'bg-green-50';
+                borderColor = borderColor || 'border-green-200';
+                titleColor = titleColor || 'text-green-800';
+                textColor = textColor || 'text-green-700';
+            } else {
+                // Keep default colors for warnings/hints if not provided
+                bgColor = bgColor || 'bg-yellow-50';
+                borderColor = borderColor || 'border-yellow-200';
+                titleColor = titleColor || 'text-yellow-800';
+                textColor = textColor || 'text-yellow-700';
+            }
+            
+            titleEl.textContent = title;
+            textEl.textContent = text;
+            
+            box.className = `p-4 rounded-xl border shadow-sm mt-4 ${bgColor} ${borderColor}`;
+            titleEl.className = `font-bold text-lg ${titleColor}`;
+            textEl.className = `text-sm mt-1 ${textColor}`;
+        }
+
+        // Utilities
+        function playSound(id) {
+            try {
+                const sound = document.getElementById(id);
+                sound.currentTime = 0;
+                sound.play();
+            } catch(e) {
+                console.error("Error playing sound:", e);
+            }
+        }
+
+        function launchConfetti() {
+            const colors = ['#10b981', '#facc15', '#3b82f6', '#ef4444', '#059669'];
+            for(let i=0; i<100; i++) {
+                const conf = document.createElement('div');
+                conf.style.position = 'fixed';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = '-10px';
+                conf.style.width = '10px';
+                conf.style.height = '10px';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.transition = 'all 2s ease-out';
+                conf.style.zIndex = '100';
+                document.body.appendChild(conf);
+                setTimeout(() => {
+                    conf.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg)`;
+                    conf.style.opacity = '0';
+                    setTimeout(() => conf.remove(), 2000);
+                }, 10);
+            }
+        }
+
+        // Initialize Learning Phase on Load
+        initLearningPhase();
+
+    </script>
+</body>
+</html>

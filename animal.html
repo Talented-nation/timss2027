@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الخلية الحيوانية - الصف الرابع</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0fdf4;
+            user-select: none;
+        }
+        
+        /* Common Styles */
+        .btn-primary {
+            background-color: #7e22ce;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #6b21a8;
+        }
+
+        /* Learning Phase Styles */
+        .match-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .match-card.selected {
+            ring: 4px;
+            ring-color: #facc15; /* yellow-400 */
+            background-color: #fef08a; /* yellow-200 */
+        }
+        .match-card.matched {
+            background-color: #86efac; /* green-300 */
+            border-color: #22c55e;
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        /* Game Phase Styles */
+        .draggable-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: none;
+        }
+        .draggable-item:active {
+            transform: scale(0.95);
+        }
+        .draggable-item.correct {
+            background-color: #4ade80 !important;
+            color: white;
+            cursor: default;
+            box-shadow: none;
+            border: 2px solid #22c55e;
+        }
+        .drop-zone {
+            transition: all 0.3s ease;
+            opacity: 0.6;
+        }
+        .drop-zone:hover, .drop-zone.active {
+            opacity: 1;
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+        }
+        .cell-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .hidden { display: none !important; }
+        
+        /* Animations */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 bg-gradient-to-b from-blue-50 to-purple-100">
+
+    <!-- Header -->
+    <header class="text-center mb-6 w-full max-w-4xl flex justify-between items-center bg-white/50 p-4 rounded-xl backdrop-blur-sm">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-purple-800">رحلة الخلية الحيوانية</h1>
+            <p class="text-sm text-gray-600">الصف الرابع الابتدائي</p>
+        </div>
+        <div class="flex gap-2 text-sm font-bold">
+            <div id="step-1-indicator" class="px-3 py-1 bg-purple-600 text-white rounded-full">1. التعلم</div>
+            <div id="step-2-indicator" class="px-3 py-1 bg-gray-200 text-gray-500 rounded-full">2. التطبيق</div>
+        </div>
+    </header>
+
+    <!-- PHASE 1: Learning / Matching -->
+    <div id="phase-learning" class="w-full max-w-4xl fade-in">
+        <div class="text-center mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">طابق المفهوم بالتعريف الصحيح</h2>
+            <p class="text-gray-600">اضغط على اسم الجزء، ثم اضغط على الوصف المناسب له.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Concepts Column -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-purple-700 text-center mb-2">أجزاء الخلية</h3>
+                <div id="concepts-list" class="flex flex-col gap-3"></div>
+            </div>
+
+            <!-- Definitions Column -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-blue-700 text-center mb-2">الوظيفة / التعريف</h3>
+                <div id="definitions-list" class="flex flex-col gap-3"></div>
+            </div>
+        </div>
+
+        <!-- Next Button (Hidden initially) -->
+        <div id="learning-complete" class="hidden text-center mt-8">
+            <div class="bg-green-100 border border-green-300 p-4 rounded-lg inline-block mb-4">
+                <p class="text-green-800 font-bold text-lg">أحسنت! لقد تعلمت وظائف الخلية.</p>
+            </div>
+            <br>
+            <button onclick="startPracticePhase()" class="btn-primary text-xl shadow-lg transform hover:scale-105 transition-all">
+                انتقل إلى تركيب الخلية ⬅
+            </button>
+        </div>
+    </div>
+
+    <!-- PHASE 2: Game / Assembly -->
+    <div id="phase-practice" class="hidden w-full max-w-6xl flex-col lg:flex-row gap-8 items-center justify-center fade-in">
+        
+        <!-- Game Board (The Cell) -->
+        <div class="relative cell-container order-2 lg:order-1 animate-float">
+            <!-- SVG Drawing of Animal Cell -->
+            <svg viewBox="0 0 500 400" class="w-full h-auto drop-shadow-2xl">
+                <!-- Cell Membrane -->
+                <path id="zone-membrane" class="drop-zone cursor-pointer fill-purple-200 stroke-purple-600 stroke-4" 
+                      d="M250 380 c-120 0 -230 -80 -230 -190 c0 -110 110 -180 230 -180 c120 0 230 70 230 180 c0 110 -110 190 -230 190 Z" />
+                
+                <!-- Cytoplasm -->
+                <path id="zone-cytoplasm" class="drop-zone cursor-pointer fill-purple-100 opacity-50" 
+                      d="M250 360 c-100 0 -210 -70 -210 -170 c0 -100 110 -160 210 -160 c100 0 210 60 210 160 c0 100 -110 170 -210 170 Z" />
+
+                <!-- Nucleus -->
+                <g id="zone-nucleus" class="drop-zone cursor-pointer">
+                    <circle cx="250" cy="200" r="60" class="fill-pink-500 stroke-pink-700 stroke-2" />
+                    <circle cx="250" cy="200" r="20" class="fill-pink-300 opacity-50" />
+                </g>
+
+                <!-- Mitochondria -->
+                <g id="zone-mitochondria" class="drop-zone cursor-pointer">
+                    <path d="M100 150 Q120 120 140 150 T180 150 Q160 180 140 150 Z" class="fill-orange-400 stroke-orange-600" transform="rotate(45, 140, 150)"/>
+                    <path d="M350 250 Q370 220 390 250 T430 250 Q410 280 390 250 Z" class="fill-orange-400 stroke-orange-600" transform="rotate(-15, 390, 250)"/>
+                </g>
+
+                <!-- Vacuoles -->
+                <g id="zone-vacuole" class="drop-zone cursor-pointer">
+                    <circle cx="150" cy="280" r="15" class="fill-blue-200 stroke-blue-400" />
+                    <circle cx="380" cy="120" r="20" class="fill-blue-200 stroke-blue-400" />
+                </g>
+            </svg>
+
+            <!-- Success Overlay -->
+            <div id="game-complete" class="hidden absolute inset-0 flex items-center justify-center bg-white/90 rounded-full z-20">
+                <div class="text-center p-4">
+                    <h2 class="text-4xl font-bold text-green-600 mb-2">ممتاز! 🎉</h2>
+                    <p class="text-gray-700">لقد أتممت الدرس بنجاح.</p>
+                    <button onclick="location.reload()" class="mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">ابدأ من جديد</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Labels / Inventory -->
+        <div class="flex flex-col gap-4 w-full max-w-md order-1 lg:order-2">
+            <div class="bg-white p-6 rounded-2xl shadow-xl border-2 border-purple-100">
+                <h3 class="text-xl font-bold text-gray-700 mb-4 text-center border-b pb-2">ضع الاسم في المكان الصحيح</h3>
+                <p class="text-xs text-center text-gray-400 mb-2">اضغط الاسم ثم اضغط مكانه في الرسم</p>
+                
+                <div id="labels-container" class="grid grid-cols-2 gap-3">
+                    <!-- Items will be generated by JS -->
+                </div>
+            </div>
+
+            <!-- Feedback Area -->
+            <div id="feedback-area" class="hidden bg-yellow-50 p-4 rounded-xl border border-yellow-200 shadow-sm animate-pulse">
+                <h4 id="feedback-title" class="font-bold text-yellow-800 text-lg"></h4>
+                <p id="feedback-text" class="text-yellow-700 text-sm mt-1"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Effects -->
+    <audio id="success-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3"></audio>
+    <audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"></audio>
+    <audio id="error-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-electronic-retro-block-hit-2185.mp3"></audio>
+
+    <script>
+        // Data Source
+        const cellParts = [
+            {
+                id: 'nucleus',
+                name: 'النواة',
+                color: 'bg-pink-500',
+                description: 'مركز التحكم في الخلية، وتحتوي على المادة الوراثية.',
+                targetId: 'zone-nucleus'
+            },
+            {
+                id: 'membrane',
+                name: 'الغشاء البلازمي',
+                color: 'bg-purple-600',
+                description: 'غشاء رقيق يحيط بالخلية وينظم دخول وخروج المواد.',
+                targetId: 'zone-membrane'
+            },
+            {
+                id: 'cytoplasm',
+                name: 'السيتوبلازم',
+                color: 'bg-purple-300',
+                description: 'مادة هلامية تملأ الخلية وتسبح فيها العضيات.',
+                targetId: 'zone-cytoplasm'
+            },
+            {
+                id: 'mitochondria',
+                name: 'الميتوكوندريا',
+                color: 'bg-orange-500',
+                description: 'مصنع الطاقة في الخلية.',
+                targetId: 'zone-mitochondria'
+            },
+            {
+                id: 'vacuole',
+                name: 'الفجوات',
+                color: 'bg-blue-400',
+                description: 'تخزن الماء والغذاء والفضلات.',
+                targetId: 'zone-vacuole'
+            }
+        ];
+
+        // --- Phase 1: Matching Game Logic ---
+        let selectedConcept = null;
+        let selectedDefinition = null;
+        let matchesFound = 0;
+
+        function initLearningPhase() {
+            const conceptsList = document.getElementById('concepts-list');
+            const definitionsList = document.getElementById('definitions-list');
+            
+            // Shuffle arrays independently
+            const shuffledConcepts = [...cellParts].sort(() => Math.random() - 0.5);
+            const shuffledDefs = [...cellParts].sort(() => Math.random() - 0.5);
+
+            shuffledConcepts.forEach(part => {
+                const el = document.createElement('div');
+                el.className = 'match-card p-4 bg-white border-2 border-purple-100 rounded-lg shadow-sm text-center font-bold text-purple-800';
+                el.textContent = part.name;
+                el.dataset.id = part.id;
+                el.dataset.type = 'concept';
+                el.onclick = () => handleMatchClick(el);
+                conceptsList.appendChild(el);
+            });
+
+            shuffledDefs.forEach(part => {
+                const el = document.createElement('div');
+                el.className = 'match-card p-4 bg-white border-2 border-blue-100 rounded-lg shadow-sm text-sm text-gray-700 flex items-center justify-center h-full';
+                el.textContent = part.description;
+                el.dataset.id = part.id;
+                el.dataset.type = 'definition';
+                el.onclick = () => handleMatchClick(el);
+                definitionsList.appendChild(el);
+            });
+        }
+
+        function handleMatchClick(el) {
+            if (el.classList.contains('matched')) return;
+
+            // Handle Selection Visuals
+            const type = el.dataset.type;
+            
+            // Clear previous selection of same type
+            const currentSelected = type === 'concept' ? selectedConcept : selectedDefinition;
+            if (currentSelected) currentSelected.classList.remove('ring-4', 'ring-yellow-400', 'bg-yellow-100');
+            
+            // Set new selection
+            el.classList.add('ring-4', 'ring-yellow-400', 'bg-yellow-100');
+            
+            if (type === 'concept') selectedConcept = el;
+            else selectedDefinition = el;
+
+            // Check if we have both sides selected
+            if (selectedConcept && selectedDefinition) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            if (selectedConcept.dataset.id === selectedDefinition.dataset.id) {
+                // Correct Match
+                playSound('success-sound');
+                
+                [selectedConcept, selectedDefinition].forEach(el => {
+                    el.classList.remove('ring-4', 'ring-yellow-400', 'bg-yellow-100');
+                    el.classList.add('matched', 'bg-green-100', 'border-green-400');
+                    el.innerHTML += ' <span class="text-green-600">✓</span>';
+                });
+                
+                matchesFound++;
+                selectedConcept = null;
+                selectedDefinition = null;
+
+                if (matchesFound === cellParts.length) {
+                    playSound('win-sound');
+                    document.getElementById('learning-complete').classList.remove('hidden');
+                    launchConfetti();
+                }
+
+            } else {
+                // Wrong Match
+                playSound('error-sound');
+                
+                [selectedConcept, selectedDefinition].forEach(el => {
+                    el.classList.add('bg-red-200');
+                    setTimeout(() => {
+                        el.classList.remove('bg-red-200', 'ring-4', 'ring-yellow-400', 'bg-yellow-100');
+                    }, 800);
+                });
+
+                selectedConcept = null;
+                selectedDefinition = null;
+            }
+        }
+
+        function startPracticePhase() {
+            // Hide Phase 1
+            document.getElementById('phase-learning').classList.add('hidden');
+            
+            // Update Header Indicators
+            document.getElementById('step-1-indicator').classList.replace('bg-purple-600', 'bg-green-600');
+            document.getElementById('step-1-indicator').textContent = '✓ التعلم';
+            
+            document.getElementById('step-2-indicator').classList.replace('bg-gray-200', 'bg-purple-600');
+            document.getElementById('step-2-indicator').classList.replace('text-gray-500', 'text-white');
+            
+            // Show Phase 2
+            const phase2 = document.getElementById('phase-practice');
+            phase2.classList.remove('hidden');
+            phase2.classList.add('flex'); // Because it was flex before hiding
+            
+            // Initialize Phase 2 Logic
+            initGamePhase();
+        }
+
+        // --- Phase 2: Assembly Game Logic ---
+        let gameSelectedItem = null;
+        let gameCompletedCount = 0;
+
+        function initGamePhase() {
+            const container = document.getElementById('labels-container');
+            const shuffledParts = [...cellParts].sort(() => Math.random() - 0.5);
+
+            shuffledParts.forEach(part => {
+                const el = document.createElement('div');
+                el.className = `draggable-item ${part.color} text-white font-bold p-3 rounded-lg text-center shadow-md select-none hover:scale-105 active:scale-95`;
+                el.textContent = part.name;
+                el.dataset.id = part.id;
+                
+                el.addEventListener('click', () => selectGameItem(el, part));
+                container.appendChild(el);
+            });
+
+            cellParts.forEach(part => {
+                const zone = document.getElementById(part.targetId);
+                if (zone) {
+                    zone.addEventListener('click', (e) => handleZoneClick(part.id));
+                }
+            });
+        }
+
+        function selectGameItem(element, partData) {
+            if (element.classList.contains('correct')) return;
+
+            document.querySelectorAll('.draggable-item').forEach(el => {
+                if(!el.classList.contains('correct')) el.classList.remove('ring-4', 'ring-yellow-400');
+            });
+
+            element.classList.add('ring-4', 'ring-yellow-400');
+            gameSelectedItem = { element, data: partData };
+            
+            showFeedback('اختر المكان', 'الآن اضغط على جزء الخلية الصحيح في الرسم.');
+        }
+
+        function handleZoneClick(zoneId) {
+            if (!gameSelectedItem) {
+                showFeedback('تنبيه', 'الرجاء اختيار اسم الجزء أولاً من القائمة.');
+                return;
+            }
+
+            if (gameSelectedItem.data.id === zoneId) {
+                handleCorrectAnswer();
+            } else {
+                handleWrongAnswer();
+            }
+        }
+
+        function handleCorrectAnswer() {
+            playSound('success-sound');
+
+            gameSelectedItem.element.classList.remove('ring-4', 'ring-yellow-400');
+            gameSelectedItem.element.classList.add('correct');
+            gameSelectedItem.element.innerHTML = `✓ ${gameSelectedItem.data.name}`;
+            
+            // Just show success, no description needed here as they already learned it
+            showFeedback(`صحيح!`, `هذه هي ${gameSelectedItem.data.name}`, true);
+
+            const zone = document.getElementById(gameSelectedItem.data.targetId);
+            zone.style.fill = '#4ade80';
+            setTimeout(() => { zone.style.fill = ''; }, 1000);
+
+            gameSelectedItem = null;
+            gameCompletedCount++;
+
+            if (gameCompletedCount === cellParts.length) {
+                setTimeout(() => {
+                    playSound('win-sound');
+                    document.getElementById('game-complete').classList.remove('hidden');
+                    launchConfetti();
+                }, 1000);
+            }
+        }
+
+        function handleWrongAnswer() {
+            playSound('error-sound');
+            gameSelectedItem.element.classList.add('bg-red-500');
+            setTimeout(() => gameSelectedItem.element.classList.remove('bg-red-500'), 500);
+            showFeedback('حاول مرة أخرى', 'هذا ليس المكان الصحيح لهذا الجزء.');
+        }
+
+        function showFeedback(title, text, isSuccess = false) {
+            const box = document.getElementById('feedback-area');
+            const titleEl = document.getElementById('feedback-title');
+            const textEl = document.getElementById('feedback-text');
+
+            box.classList.remove('hidden');
+            titleEl.textContent = title;
+            textEl.textContent = text;
+            
+            box.className = isSuccess 
+                ? 'bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm mt-4'
+                : 'bg-yellow-50 p-4 rounded-xl border border-yellow-200 shadow-sm mt-4';
+                
+            titleEl.className = isSuccess ? 'font-bold text-green-800 text-lg' : 'font-bold text-yellow-800 text-lg';
+            textEl.className = isSuccess ? 'text-green-700 text-sm mt-1' : 'text-yellow-700 text-sm mt-1';
+        }
+
+        // Utilities
+        function playSound(id) {
+            try {
+                const sound = document.getElementById(id);
+                sound.currentTime = 0;
+                sound.play();
+            } catch(e) {}
+        }
+
+        function launchConfetti() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#purple'];
+            for(let i=0; i<100; i++) {
+                const conf = document.createElement('div');
+                conf.style.position = 'fixed';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = '-10px';
+                conf.style.width = '10px';
+                conf.style.height = '10px';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.transition = 'all 2s ease-out';
+                conf.style.zIndex = '100';
+                document.body.appendChild(conf);
+                setTimeout(() => {
+                    conf.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg)`;
+                }, 10);
+            }
+        }
+
+        // Initialize Learning Phase on Load
+        initLearningPhase();
+
+    </script>
+</body>
+</html>

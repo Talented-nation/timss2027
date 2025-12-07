@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة علوم TIMSS للصف الرابع</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        /* Custom font for better Arabic readability and friendly look */
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: #f0f4f8; /* Light blue/gray background (kept subtle) */
+        }
+        .card {
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        /* التغيير الرئيسي: لون خلفية فقاعة الدردشة للذكاء الاصطناعي إلى الأخضر الفاتح */
+        .ai-chat-bubble {
+            background-color: #dcfce7; /* green-100 */
+            border-top-right-radius: 1.5rem;
+            border-bottom-left-radius: 1.5rem;
+        }
+        /* لون خلفية فقاعة الدردشة للمستخدم (يمكن أن يبقى لون مختلف للمقارنة) */
+        .user-chat-bubble {
+            background-color: #eff6ff; /* light-blue-50 */
+            border-top-left-radius: 1.5rem;
+            border-bottom-right-radius: 1.5rem;
+        }
+        /* Custom scrollbar for chat (using slate/gray) */
+        #chat-window::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-window::-webkit-scrollbar-thumb {
+            background-color: #94a3b8;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="app" class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Main Quiz/Question Area -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Header (تم تحديث اللون إلى الأخضر) -->
+            <header class="text-center p-6 bg-white rounded-2xl card border-b-4 border-emerald-500">
+                <h1 class="text-3xl font-extrabold text-gray-800">منصة تدريب علوم TIMSS للصف الرابع</h1>
+                <p class="text-lg text-gray-600 mt-2">تدريب مُخصص على: علوم الحياة، علوم الأرض، وعلوم الفيزياء.</p>
+            </header>
+
+            <!-- Quiz Controls -->
+            <div class="p-6 bg-white rounded-2xl card space-y-4">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">اضغط على الزر لبدء التدريب على المواضيع الأساسية في العلوم:</h2>
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <!-- تم تحديث لون الزر إلى الأخضر -->
+                    <button id="btn-math-start" class="flex-1 min-w-[200px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition duration-150 transform hover:scale-105" onclick="generateNewQuestion()">
+                        <i data-lucide="flask-round" class="w-5 h-5 inline-block ml-2"></i> سؤال عشوائي في العلوم
+                    </button>
+                </div>
+                <!-- Loading Indicator (تم تحديث اللون إلى الأخضر) -->
+                <div id="question-loading" class="hidden text-center text-emerald-500 font-semibold mt-4">
+                    <i data-lucide="loader" class="w-6 h-6 inline-block ml-2 animate-spin"></i> جارٍ توليد سؤال جديد...
+                </div>
+            </div>
+
+            <!-- Question Display Area -->
+            <div id="question-card" class="p-8 bg-white rounded-2xl card space-y-6 hidden">
+                <div class="flex justify-between items-center border-b pb-4 mb-4">
+                    <!-- تم تحديث اللون إلى الأخضر -->
+                    <h3 class="text-2xl font-extrabold text-emerald-800" id="question-type">سؤال في موضوع [الموضوع]</h3>
+                    <span id="score-display" class="text-lg font-bold text-gray-700 p-2 bg-yellow-100 rounded-lg">النتيجة: 0</span>
+                </div>
+
+                <p id="current-question-text" class="text-xl text-gray-800 leading-relaxed font-bold"></p>
+                
+                <div id="options-container" class="space-y-3">
+                    <!-- Options will be injected here -->
+                </div>
+
+                <div id="feedback-area" class="p-4 rounded-xl text-center font-bold transition-all duration-300 hidden"></div>
+                
+                <!-- تم تحديث لون الزر إلى الأخضر -->
+                <button id="submit-answer-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition duration-150 transform hover:scale-[1.02]" onclick="checkAnswer()">
+                    إرسال الإجابة
+                </button>
+            </div>
+        </div>
+
+        <!-- Chatbot Area -->
+        <div class="lg:col-span-1 flex flex-col h-[600px] lg:h-auto">
+            <div class="bg-white rounded-2xl card flex flex-col flex-grow p-4 space-y-4">
+                <div class="text-center p-3 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-700 flex justify-center items-center">
+                        <!-- تم تحديث لون الأيقونة إلى الأخضر -->
+                        <i data-lucide="bot" class="w-6 h-6 ml-2 text-emerald-600"></i>
+                        مساعد TIMSS الذكي
+                    </h2>
+                    <p class="text-sm text-gray-500">اسألني عن تلميح أو شرح للمفاهيم!</p>
+                </div>
+
+                <!-- Chat Window -->
+                <div id="chat-window" class="flex-grow overflow-y-auto space-y-4 p-2">
+                    <!-- Initial AI message -->
+                    <div class="flex justify-start">
+                        <div class="ai-chat-bubble p-4 max-w-[80%] text-sm text-gray-800">
+                            <!-- تم تحديث لون الأيقونة إلى الأخضر -->
+                            <i data-lucide="sparkles" class="w-4 h-4 inline-block ml-1 text-emerald-500"></i>
+                            أهلاً بك يا بطل! أنا مساعدك الذكي في العلوم، يمكنك أن تسألني عن أي مفهوم أو تطلب مني تلميحًا للسؤال الحالي.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="flex items-center pt-4 border-t border-gray-200">
+                    <input type="text" id="chat-input" class="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-gray-800" placeholder="اكتب سؤالك هنا...">
+                    <!-- تم تحديث لون زر الإرسال إلى الأخضر -->
+                    <button id="send-chat-btn" class="mr-2 bg-emerald-500 hover:bg-emerald-600 text-white p-3 rounded-xl transition duration-150 disabled:bg-emerald-300" onclick="sendChatMessage()">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <!-- Chat Loading Indicator (تم تحديث اللون إلى الأخضر) -->
+                <div id="chat-loading" class="hidden text-right text-sm text-emerald-500 font-semibold">
+                    <i data-lucide="loader" class="w-4 h-4 inline-block ml-1 animate-spin"></i> جاري الرد...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- Firebase/API Setup (Placeholder for Canvas Environment) ---
+        // IMPORTANT: Use gemini-2.5-flash-preview-09-2025 for text generation
+        const apiKey = "AIzaSyBxLxxsYWS6wEO8qZWt8YUrxpQKoar3-IU"; 
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        // --- Application State ---
+        let currentQuestion = null;
+        let selectedOption = null;
+        let score = 0;
+        let performanceHistory = []; // Tracks student performance for adaptive logic
+        let generatedQuestionHistory = []; // NEW: State to track generated questions for non-repetition
+        const EARTH_SCIENCE_TOPIC = 'علوم الأرض: القوى الطبيعية والكون';
+
+        // --- SCIENCE TOPICS CONSTANT ---
+        const SCIENCE_TOPICS = [
+            'علوم الحياة: الكائنات الحية والبيئة',
+            EARTH_SCIENCE_TOPIC,
+            'علوم الفيزياء: المادة والطاقة والحركة'
+        ];
+        // ------------------------------
+
+        // --- Utility Functions ---
+
+        /**
+         * Generic function to call the Gemini API with exponential backoff.
+         * @param {object} payload - The API payload.
+         * @param {number} maxRetries - Maximum number of retries.
+         * @returns {Promise<object>} - The parsed JSON response.
+         */
+        async function fetchGeminiApi(payload, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429 && i < maxRetries - 1) {
+                        // Retry for rate limiting (429)
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    } else {
+                        const errorData = await response.json();
+                        console.error('API Error:', errorData);
+                        // Do not throw an error, instead return null/handle gracefully
+                        // throw new Error(`API failed with status ${response.status}: ${errorData.error.message}`);
+                        return null; 
+                    }
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        console.error("Failed to fetch from Gemini API after multiple retries:", error);
+                        // Do not throw an error, return null/handle gracefully
+                        return null; 
+                    }
+                    // Handle network errors or other exceptions
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        /**
+         * Parses the JSON string from the API response text.
+         * @param {string} text - The raw text response from the model.
+         * @returns {object|null} The parsed JSON object or null on error.
+         */
+        function parseJsonFromApiText(text) {
+            try {
+                // The API often wraps JSON in markdown fences (```json...```)
+                const jsonMatch = text.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+                if (jsonMatch && jsonMatch[1]) {
+                    return JSON.parse(jsonMatch[1]);
+                }
+                // Try parsing the text directly if no markdown fence is found
+                return JSON.parse(text);
+            } catch (e) {
+                console.error("Error parsing JSON from API response:", text, e);
+                return null;
+            }
+        }
+
+        // --- UI Update Functions ---
+
+        function updateScore(points) {
+            score += points;
+            document.getElementById('score-display').textContent = `النتيجة: ${score}`;
+        }
+
+        function toggleLoading(isLoading) {
+            const loadingIndicator = document.getElementById('question-loading');
+            const questionCard = document.getElementById('question-card');
+            if (isLoading) {
+                loadingIndicator.classList.remove('hidden');
+                questionCard.classList.add('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+                questionCard.classList.remove('hidden');
+            }
+        }
+
+        function displayQuestion(questionData, topic) {
+            currentQuestion = questionData;
+            selectedOption = null;
+
+            document.getElementById('question-type').textContent = `سؤال في موضوع: ${topic}`; 
+            document.getElementById('current-question-text').innerHTML = questionData.question.replace(/\n/g, '<br>'); 
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            // استخدام أحرف أ، ب، ج، د لخيارات الإجابة
+            const arabicLabels = ['أ', 'ب', 'ج', 'د'];
+            
+            questionData.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'w-full text-right p-4 bg-gray-50 hover:bg-gray-200 rounded-xl text-lg text-gray-700 font-medium transition duration-150 border-2 border-gray-300 option-btn';
+                button.textContent = `${arabicLabels[index]}. ${option}`; 
+                button.setAttribute('data-index', index);
+                button.onclick = () => selectOption(button, index);
+                optionsContainer.appendChild(button);
+            });
+
+            const submitBtn = document.getElementById('submit-answer-btn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'إرسال الإجابة'; 
+            submitBtn.onclick = () => checkAnswer();
+
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('feedback-area').innerHTML = '';
+            toggleLoading(false);
+        }
+
+        function selectOption(button, index) {
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-500', 'bg-emerald-100'); // تم التغيير من indigo إلى emerald
+                btn.classList.add('border-gray-300', 'bg-gray-50');
+            });
+            button.classList.add('border-emerald-500', 'bg-emerald-100'); // تم التغيير من indigo إلى emerald
+            button.classList.remove('border-gray-300', 'bg-gray-50');
+            selectedOption = currentQuestion.options[index];
+        }
+
+        // --- AI Core Logic ---
+
+        /**
+         * Selects the next topic, prioritizing topics where the student has struggled recently.
+         * @returns {string} One of the SCIENCE_TOPICS.
+         */
+        function getNextTopic() {
+            if (performanceHistory.length < 5) {
+                // Random start if few attempts
+                return SCIENCE_TOPICS[Math.floor(Math.random() * SCIENCE_TOPICS.length)];
+            }
+            
+            // Simple adaptive logic: find the most failed topic in the last 5 attempts
+            const lastFive = performanceHistory.slice(-5);
+            const topicFailureCounts = {};
+            SCIENCE_TOPICS.forEach(topic => topicFailureCounts[topic] = 0);
+
+            lastFive.forEach(p => {
+                // Check if p.topic exists in the current list, preventing errors if topics change
+                if (!p.correct && SCIENCE_TOPICS.includes(p.topic)) {
+                    topicFailureCounts[p.topic]++;
+                }
+            });
+
+            let maxFails = -1;
+            let weakestTopic = null;
+
+            for (const topic in topicFailureCounts) {
+                if (topicFailureCounts[topic] > maxFails) {
+                    maxFails = topicFailureCounts[topic];
+                    weakestTopic = topic;
+                }
+            }
+            
+            // If we have a clear weak area (more than 1 failure in the last 5 in that topic), return it
+            if (weakestTopic && maxFails > 1) {
+                return weakestTopic;
+            }
+            
+            // Fallback to random selection
+            return SCIENCE_TOPICS[Math.floor(Math.random() * SCIENCE_TOPICS.length)];
+        }
+
+
+        /**
+         * Calls the API to generate a new TIMSS-style question for a specific science topic.
+         */
+        async function generateNewQuestion() { 
+            toggleLoading(true);
+            const selectedTopic = getNextTopic(); 
+            
+            const topicList = SCIENCE_TOPICS.join(', '); 
+            
+            let previousQuestionsText = "";
+
+            // LOGIC FOR NON-REPETITION (Applied specifically to Earth Science as requested)
+            if (selectedTopic === EARTH_SCIENCE_TOPIC) {
+                // Filter history for the specific topic and get the last 10 questions
+                const topicHistory = generatedQuestionHistory
+                    .filter(q => q.topic === selectedTopic)
+                    .slice(-10); 
+                
+                if (topicHistory.length > 0) {
+                    // Create a formatted list of past questions to instruct the model to avoid
+                    const questionsList = topicHistory.map((q, index) => `${index + 1}. ${q.question.replace(/"/g, '\"')}`).join('\n');
+                    previousQuestionsText = ` لا يجب عليك إطلاقاً تكرار أي من الأسئلة التالية التي تم طرحها مسبقاً في نفس الموضوع:\n---\n${questionsList}\n---`;
+                }
+            }
+            
+            // Update the system prompt with the non-repetition instruction if applicable
+            const systemPrompt = `أنت خبير في تقييمات TIMSS للصف الرابع في مادة العلوم. مهمتك هي إنشاء سؤال جديد في مجال '${selectedTopic}' من ضمن المجالات المحددة التالية: ${topicList}. يجب أن يتناسب السؤال مع المعايير والمفاهيم الرئيسية التي يتم اختبارها في TIMSS للصف الرابع في العلوم. يجب أن يكون السؤال في صيغة 'اختر من متعدد' ويكون له خيار واحد صحيح فقط من بين أربعة خيارات. ${previousQuestionsText} قدم السؤال والإجابة الصحيحة وشرحًا مبسطًا للإجابة في تنسيق JSON.`;
+            const userQuery = `أنشئ سؤالاً جديداً في موضوع: ${selectedTopic}.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "question": { "type": "STRING", "description": "نص السؤال." },
+                            "options": { "type": "ARRAY", "items": { "type": "STRING" }, "description": "أربعة خيارات (أ، ب، ت، ث)." },
+                            "correct_option": { "type": "STRING", "description": "نص الخيار الصحيح." },
+                            "explanation": { "type": "STRING", "description": "شرح مبسط للإجابة الصحيحة." }
+                        },
+                        propertyOrdering: ["question", "options", "correct_option", "explanation"]
+                    }
+                }
+            };
+
+            try {
+                const result = await fetchGeminiApi(payload);
+                if (result) {
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (jsonText) {
+                        const questionData = parseJsonFromApiText(jsonText);
+                        if (questionData && questionData.question && questionData.options) {
+                            displayQuestion(questionData, selectedTopic);
+
+                            // Add the new question to history
+                            generatedQuestionHistory.push({
+                                topic: selectedTopic,
+                                question: questionData.question 
+                            });
+                            // Keep history size manageable (e.g., last 15 questions overall)
+                            if (generatedQuestionHistory.length > 15) {
+                                generatedQuestionHistory.shift(); 
+                            }
+
+                        } else {
+                            throw new Error("Invalid JSON structure received or content missing.");
+                        }
+                    } else {
+                        throw new Error("No content received from API.");
+                    }
+                } else {
+                    throw new Error("API call failed after retries.");
+                }
+            } catch (error) {
+                console.error("Failed to generate question:", error);
+                document.getElementById('feedback-area').classList.remove('hidden');
+                document.getElementById('feedback-area').className = 'p-4 rounded-xl text-center font-bold text-red-700 bg-red-100';
+                document.getElementById('feedback-area').textContent = 'عذراً، حدث خطأ في توليد السؤال. يرجى المحاولة مرة أخرى.';
+                toggleLoading(false);
+            }
+        }
+
+        /**
+         * Checks the student's answer against the correct option.
+         */
+        function checkAnswer() {
+            if (!currentQuestion || selectedOption === null) {
+                document.getElementById('feedback-area').classList.remove('hidden');
+                document.getElementById('feedback-area').className = 'p-4 rounded-xl text-center font-bold text-orange-700 bg-orange-100';
+                document.getElementById('feedback-area').textContent = 'الرجاء اختيار إجابة أولاً!';
+                return;
+            }
+
+            const isCorrect = selectedOption === currentQuestion.correct_option;
+            const feedbackArea = document.getElementById('feedback-area');
+            const submitBtn = document.getElementById('submit-answer-btn');
+
+            // Record performance history
+            performanceHistory.push({
+                topic: document.getElementById('question-type').textContent.replace('سؤال في موضوع: ', '').trim(),
+                correct: isCorrect
+            });
+
+            if (isCorrect) {
+                updateScore(1);
+                feedbackArea.className = 'p-4 rounded-xl text-center font-bold text-green-700 bg-green-100';
+                feedbackArea.innerHTML = `
+                    <i data-lucide="check-circle" class="w-5 h-5 inline-block ml-2"></i> أحسنت! إجابة صحيحة.
+                    <p class="mt-2 text-sm font-normal">${currentQuestion.explanation}</p>
+                `;
+            } else {
+                feedbackArea.className = 'p-4 rounded-xl text-center font-bold text-red-700 bg-red-100';
+                feedbackArea.innerHTML = `
+                    <i data-lucide="x-circle" class="w-5 h-5 inline-block ml-2"></i> خطأ. الإجابة الصحيحة هي: **${currentQuestion.correct_option}**.
+                    <p class="mt-2 text-sm font-normal">**الشرح:** ${currentQuestion.explanation}</p>
+                `;
+            }
+            
+            feedbackArea.classList.remove('hidden');
+            submitBtn.textContent = 'سؤال جديد';
+            submitBtn.onclick = () => generateNewQuestion();
+
+            // Disable all options and remove event handlers
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.onclick = null;
+                // Highlight correct/incorrect options for review
+                if (btn.textContent.includes(currentQuestion.correct_option)) {
+                    btn.classList.remove('bg-gray-50', 'bg-emerald-100', 'border-gray-300'); 
+                    btn.classList.add('bg-lime-200', 'border-lime-500'); // Correct answer
+                } else if (btn.classList.contains('bg-emerald-100')) { 
+                    btn.classList.remove('bg-emerald-100', 'border-emerald-500'); 
+                    btn.classList.add('bg-red-200', 'border-red-500'); // Selected incorrect answer
+                }
+            });
+
+            lucide.createIcons(); 
+        }
+
+        /**
+         * Handles sending messages to the AI Chatbot for hints/explanations.
+         */
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            const chatWindow = document.getElementById('chat-window');
+            const sendBtn = document.getElementById('send-chat-btn');
+            const chatLoading = document.getElementById('chat-loading');
+
+            if (!message) return;
+
+            // 1. Display user message
+            const userMsgHtml = `
+                <div class="flex justify-end">
+                    <div class="user-chat-bubble p-4 max-w-[80%] text-sm text-gray-800">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            chatWindow.innerHTML += userMsgHtml;
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            input.value = '';
+            input.disabled = true;
+            sendBtn.disabled = true;
+            chatLoading.classList.remove('hidden');
+
+            // 2. Prepare AI prompt
+            const questionContext = currentQuestion ? `السؤال الحالي يدور حول موضوع ${document.getElementById('question-type').textContent.replace('سؤال في موضوع: ', '').trim()}: "${currentQuestion.question}". الخيارات المتاحة هي: ${currentQuestion.options.join(', ')}.` : 'لا يوجد سؤال قيد العرض حالياً.';
+            
+            const systemPrompt = `أنت مساعد ذكي ولطيف لطلاب الصف الرابع في مادة العلوم. مهمتك هي تقديم تلميحات أو شروحات مفاهيمية للطلاب الذين يسألون عن أسئلة TIMSS (المواضيع المتاحة: ${SCIENCE_TOPICS.join(', ')}), دون إعطاء الإجابة النهائية أبداً. يجب أن تكون إجاباتك مشجعة وواضحة ومناسبة لمستوى طالب في المرحلة الابتدائية. إذا كان السؤال عن تلميح للسؤال الحالي، قدم شرحاً بسيطاً للمفهوم العلمي المطلوب للتفكير في الحل.`;
+            const userQuery = `السياق الحالي: ${questionContext}. استفسار الطالب: ${message}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                const result = await fetchGeminiApi(payload);
+                const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text || "عذراً، لم أتمكن من فهم سؤالك الآن. يرجى المحاولة بصيغة أخرى.";
+
+                // 3. Display AI response
+                const aiMsgHtml = `
+                    <div class="flex justify-start">
+                        <div class="ai-chat-bubble p-4 max-w-[80%] text-sm text-gray-800">
+                            <!-- تم تحديث اللون إلى الأخضر -->
+                            <i data-lucide="bot" class="w-4 h-4 inline-block ml-1 text-emerald-500"></i>
+                            ${aiText}
+                        </div>
+                    </div>
+                `;
+                chatWindow.innerHTML += aiMsgHtml;
+            } catch (error) {
+                console.error("Chatbot error:", error);
+                const errorMsgHtml = `
+                    <div class="flex justify-start">
+                        <div class="ai-chat-bubble p-4 max-w-[80%] text-sm text-red-600 bg-red-100">
+                            عذراً، حدث خطأ أثناء الاتصال بالمساعد الذكي. يرجى المحاولة لاحقاً.
+                        </div>
+                    </div>
+                `;
+                chatWindow.innerHTML += errorMsgHtml;
+            } finally {
+                // 4. Reset UI
+                input.disabled = false;
+                sendBtn.disabled = false;
+                chatLoading.classList.add('hidden');
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+                input.focus();
+            }
+        }
+        
+        // --- Initialization ---
+        window.onload = () => {
+             // Attach event listener for 'Enter' key in chat input
+            document.getElementById('chat-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+            // Initial call to generate a question on load
+            generateNewQuestion();
+        };
+
+    </script>
+</body>
+</html>

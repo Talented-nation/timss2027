@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صائد الجزيئات - لعبة المركبات الكيميائية</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Amiri', serif;
+            background: linear-gradient(135deg, #1e40af, #7e22ce);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .atom {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            user-select: none;
+            position: relative;
+        }
+        
+        .atom:hover {
+            transform: scale(1.1);
+        }
+        
+        .atom.H { background: radial-gradient(circle at 30% 30%, #ef4444, #b91c1c); }
+        .atom.O { background: radial-gradient(circle at 30% 30%, #3b82f6, #1d4ed8); }
+        .atom.C { background: radial-gradient(circle at 30% 30%, #10b981, #047857); }
+        .atom.N { background: radial-gradient(circle at 30% 30%, #8b5cf6, #6d28d9); }
+        .atom.Cl { background: radial-gradient(circle at 30% 30%, #f59e0b, #d97706); }
+        .atom.Na { background: radial-gradient(circle at 30% 30%, #ec4899, #be185d); }
+        
+        .molecule-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .molecule-card:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-5px);
+        }
+        
+        .molecule-card.active {
+            background: rgba(34, 197, 94, 0.3);
+            border: 2px solid #22c55e;
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .bounce {
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        
+        .progress-bar {
+            height: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(to right, #22c55e, #16a34a);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .success {
+            animation: celebrate 1.5s ease-in-out;
+        }
+        
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .game-cell {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .game-cell:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .game-cell.selected {
+            background: rgba(34, 197, 94, 0.3);
+            border: 2px solid #22c55e;
+        }
+        
+        .quiz-option {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .quiz-option.correct {
+            background: rgba(34, 197, 94, 0.3);
+            border: 2px solid #22c55e;
+        }
+        
+        .quiz-option.wrong {
+            background: rgba(239, 68, 68, 0.3);
+            border: 2px solid #ef4444;
+        }
+        
+        .molecule-display {
+            font-size: 4rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .subscript {
+            vertical-align: sub;
+            font-size: 0.7em;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .molecule-display {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 text-white floating">
+                <i class="fas fa-atom mr-3"></i>صائد الجزيئات<i class="fas fa-flask ml-3"></i>
+            </h1>
+            <p class="text-xl text-blue-200 mb-2">لعبة تفاعلية لتعلم المركبات الكيميائية</p>
+            <p class="text-lg text-blue-100">اختر وضع اللعبة المناسب لك وابدأ رحلة التعلم الممتعة!</p>
+        </header>
+
+        <!-- Game Container -->
+        <div class="game-container p-6 mb-8">
+            <!-- Game Selection -->
+            <div id="game-selection" class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-white mb-6">اختر وضع اللعبة</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-blue-600 rounded-2xl p-6 cursor-pointer hover:bg-blue-700 transition-all duration-300 transform hover:scale-105" onclick="selectGameMode('learn')">
+                        <div class="text-4xl mb-4"><i class="fas fa-graduation-cap"></i></div>
+                        <h3 class="text-2xl font-bold mb-2">وضع التعلم</h3>
+                        <p class="text-blue-100">تعرف على المركبات الكيميائية وتركيبها</p>
+                    </div>
+                    <div class="bg-green-600 rounded-2xl p-6 cursor-pointer hover:bg-green-700 transition-all duration-300 transform hover:scale-105" onclick="selectGameMode('build')">
+                        <div class="text-4xl mb-4"><i class="fas fa-puzzle-piece"></i></div>
+                        <h3 class="text-2xl font-bold mb-2">وضع التجميع</h3>
+                        <p class="text-green-100">قم بتجميع الجزيئات من الذرات</p>
+                    </div>
+                    <div class="bg-purple-600 rounded-2xl p-6 cursor-pointer hover:bg-purple-700 transition-all duration-300 transform hover:scale-105" onclick="selectGameMode('quiz')">
+                        <div class="text-4xl mb-4"><i class="fas fa-question-circle"></i></div>
+                        <h3 class="text-2xl font-bold mb-2">وضع الاختبار</h3>
+                        <p class="text-purple-100">اختبر معلوماتك في المركبات الكيميائية</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learn Mode -->
+            <div id="learn-mode" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-white mb-2">وضع التعلم</h2>
+                    <p class="text-xl text-blue-200">تعرف على المركبات الكيميائية الشائعة وتركيبها</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="molecule-card p-5" onclick="selectMolecule('water')">
+                        <div class="molecule-display">H<span class="subscript">2</span>O</div>
+                        <h3 class="text-xl font-bold text-center mb-2">الماء</h3>
+                        <p class="text-gray-200 text-center">يتكون من ذرتي هيدروجين وذرة أكسجين</p>
+                        <div class="flex justify-center mt-4">
+                            <div class="atom H mx-1">H</div>
+                            <div class="atom H mx-1">H</div>
+                            <div class="atom O mx-1">O</div>
+                        </div>
+                    </div>
+                    
+                    <div class="molecule-card p-5" onclick="selectMolecule('co2')">
+                        <div class="molecule-display">CO<span class="subscript">2</span></div>
+                        <h3 class="text-xl font-bold text-center mb-2">ثاني أكسيد الكربون</h3>
+                        <p class="text-gray-200 text-center">يتكون من ذرة كربون وذرتي أكسجين</p>
+                        <div class="flex justify-center mt-4">
+                            <div class="atom C mx-1">C</div>
+                            <div class="atom O mx-1">O</div>
+                            <div class="atom O mx-1">O</div>
+                        </div>
+                    </div>
+                    
+                    <div class="molecule-card p-5" onclick="selectMolecule('salt')">
+                        <div class="molecule-display">NaCl</div>
+                        <h3 class="text-xl font-bold text-center mb-2">ملح الطعام</h3>
+                        <p class="text-gray-200 text-center">يتكون من ذرة صوديوم وذرة كلور</p>
+                        <div class="flex justify-center mt-4">
+                            <div class="atom Na mx-1">Na</div>
+                            <div class="atom Cl mx-1">Cl</div>
+                        </div>
+                    </div>
+                    
+                    <div class="molecule-card p-5" onclick="selectMolecule('ammonia')">
+                        <div class="molecule-display">NH<span class="subscript">3</span></div>
+                        <h3 class="text-xl font-bold text-center mb-2">الأمونيا</h3>
+                        <p class="text-gray-200 text-center">يتكون من ذرة نيتروجين وثلاث ذرات هيدروجين</p>
+                        <div class="flex justify-center mt-4">
+                            <div class="atom N mx-1">N</div>
+                            <div class="atom H mx-1">H</div>
+                            <div class="atom H mx-1">H</div>
+                            <div class="atom H mx-1">H</div>
+                        </div>
+                    </div>
+                    
+                    <div class="molecule-card p-5" onclick="selectMolecule('sugar')">
+                        <div class="molecule-display">C<span class="subscript">6</span>H<span class="subscript">12</span>O<span class="subscript">6</span></div>
+                        <h3 class="text-xl font-bold text-center mb-2">الجلوكوز (سكر)</h3>
+                        <p class="text-gray-200 text-center">يتكون من 6 ذرات كربون، 12 هيدروجين، و6 أكسجين</p>
+                        <div class="flex justify-center mt-4">
+                            <div class="atom C mx-1">C</div>
+                            <div class="atom H mx-1">H</div>
+                            <div class="atom O mx-1">O</div>
+                        </div>
+                    </div>
+                    
+                    <div class="molecule-card p-5" onclick="selectMolecule('vinegar')">
+                        <div class="molecule-display">CH<span class="subscript">3</span>COOH</div>
+                        <h3 class="text-xl font-bold text-center mb-2">الخل</h3>
+                        <p class="text-gray-200 text-center">يتكون من كربون، هيدروجين، وأكسجين</p>
+                        <div class="flex justify-center mt-4">
+                            <div class="atom C mx-1">C</div>
+                            <div class="atom H mx-1">H</div>
+                            <div class="atom O mx-1">O</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="showGameSelection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300">
+                        العودة إلى قائمة الألعاب
+                    </button>
+                </div>
+            </div>
+
+            <!-- Build Mode -->
+            <div id="build-mode" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-white mb-2">وضع التجميع</h2>
+                    <p class="text-xl text-blue-200">قم بتجميع الجزيء الصحيح من الذرات المتاحة</p>
+                </div>
+                
+                <div class="bg-blue-900 rounded-2xl p-6 mb-6">
+                    <h3 class="text-2xl font-bold text-white text-center mb-4">المركب المطلوب: <span id="target-molecule" class="text-yellow-300">H₂O</span></h3>
+                    <p class="text-blue-200 text-center" id="target-name">الماء</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-800 rounded-2xl p-6">
+                        <h3 class="text-xl font-bold text-white mb-4 text-center">الذرات المتاحة</h3>
+                        <div class="flex flex-wrap justify-center gap-4" id="atoms-container">
+                            <!-- سيتم إضافة الذرات هنا بالجافاسكريبت -->
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-2xl p-6">
+                        <h3 class="text-xl font-bold text-white mb-4 text-center">منطقة التجميع</h3>
+                        <div class="min-h-40 flex flex-wrap items-center justify-center gap-4 border-2 border-dashed border-gray-600 rounded-xl p-4" id="build-area">
+                            <p class="text-gray-400">اسحب الذرات إلى هنا</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button id="check-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300 mr-4">
+                        تحقق من التركيب
+                    </button>
+                    <button onclick="showGameSelection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300">
+                        العودة إلى قائمة الألعاب
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quiz Mode -->
+            <div id="quiz-mode" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-white mb-2">وضع الاختبار</h2>
+                    <p class="text-xl text-blue-200">اختبر معلوماتك في المركبات الكيميائية</p>
+                </div>
+                
+                <div class="bg-purple-900 rounded-2xl p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-xl font-bold">السؤال <span id="question-number">1</span> من <span id="total-questions">5</span></div>
+                        <div class="text-xl font-bold">النقاط: <span id="quiz-score">0</span></div>
+                    </div>
+                    <div class="progress-bar mb-2">
+                        <div id="quiz-progress" class="progress" style="width: 0%"></div>
+                    </div>
+                    <p class="text-center text-purple-200" id="progress-text">0% مكتمل</p>
+                </div>
+                
+                <div class="bg-gray-800 rounded-2xl p-6 mb-6">
+                    <h3 class="text-2xl font-bold text-white mb-4 text-center" id="quiz-question">ما هو التركيب الصحيح لجزيء الماء؟</h3>
+                    
+                    <div id="quiz-options">
+                        <!-- سيتم إضافة الخيارات هنا بالجافاسكريبت -->
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button id="next-question" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300 mr-4 hidden">
+                        السؤال التالي
+                    </button>
+                    <button onclick="showGameSelection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-lg transition-all duration-300">
+                        العودة إلى قائمة الألعاب
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="text-center text-blue-200 py-6">
+            <p>لعبة "صائد الجزيئات" - صممت لمساعدة طلاب الصف الرابع على فهم المركبات الكيميائية</p>
+            <p class="mt-2">تعلم بمرح واستمتع برحلة الاكتشاف العلمي!</p>
+        </footer>
+    </div>
+
+    <script>
+        // حالات اللعبة
+        let currentGameMode = '';
+        let currentMolecule = '';
+        let score = 0;
+        let currentQuestion = 0;
+        let quizScore = 0;
+        
+        // قاعدة بيانات الجزيئات
+        const molecules = {
+            'water': {
+                formula: 'H₂O',
+                name: 'الماء',
+                atoms: ['H', 'H', 'O'],
+                description: 'الماء هو أساس الحياة، ويتكون من ذرتي هيدروجين وذرة أكسجين'
+            },
+            'co2': {
+                formula: 'CO₂',
+                name: 'ثاني أكسيد الكربون',
+                atoms: ['C', 'O', 'O'],
+                description: 'ثاني أكسيد الكربون هو غاز نتنفسه خارجاً، ويتكون من ذرة كربون وذرتي أكسجين'
+            },
+            'salt': {
+                formula: 'NaCl',
+                name: 'ملح الطعام',
+                atoms: ['Na', 'Cl'],
+                description: 'ملح الطعام نستخدمه في طعامنا، ويتكون من ذرة صوديوم وذرة كلور'
+            },
+            'ammonia': {
+                formula: 'NH₃',
+                name: 'الأمونيا',
+                atoms: ['N', 'H', 'H', 'H'],
+                description: 'الأمونيا تستخدم في المنظفات، وتتكون من ذرة نيتروجين وثلاث ذرات هيدروجين'
+            },
+            'sugar': {
+                formula: 'C₆H₁₂O₆',
+                name: 'الجلوكوز (سكر)',
+                atoms: ['C', 'C', 'C', 'C', 'C', 'C', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'O', 'O', 'O', 'O', 'O', 'O'],
+                description: 'الجلوكوز هو نوع من السكر، ويتكون من 6 ذرات كربون، 12 هيدروجين، و6 أكسجين'
+            },
+            'vinegar': {
+                formula: 'CH₃COOH',
+                name: 'الخل',
+                atoms: ['C', 'H', 'H', 'H', 'C', 'O', 'O', 'H'],
+                description: 'الخل يستخدم في الطعام والتنظيف، ويتكون من كربون، هيدروجين، وأكسجين'
+            }
+        };
+        
+        // أسئلة الاختبار
+        const quizQuestions = [
+            {
+                question: 'ما هو التركيب الصحيح لجزيء الماء؟',
+                options: [
+                    { text: 'H₂O', correct: true },
+                    { text: 'CO₂', correct: false },
+                    { text: 'NaCl', correct: false },
+                    { text: 'NH₃', correct: false }
+                ]
+            },
+            {
+                question: 'أي من هذه المركبات يتكون من ذرة صوديوم وذرة كلور؟',
+                options: [
+                    { text: 'ملح الطعام', correct: true },
+                    { text: 'الماء', correct: false },
+                    { text: 'ثاني أكسيد الكربون', correct: false },
+                    { text: 'الأمونيا', correct: false }
+                ]
+            },
+            {
+                question: 'ما هو التركيب الكيميائي لثاني أكسيد الكربون؟',
+                options: [
+                    { text: 'CO₂', correct: true },
+                    { text: 'H₂O', correct: false },
+                    { text: 'NaCl', correct: false },
+                    { text: 'NH₃', correct: false }
+                ]
+            },
+            {
+                question: 'أي من هذه الذرات تدخل في تركيب جزيء الأمونيا؟',
+                options: [
+                    { text: 'النيتروجين والهيدروجين', correct: true },
+                    { text: 'الكربون والأكسجين', correct: false },
+                    { text: 'الصوديوم والكلور', correct: false },
+                    { text: 'الكربون والهيدروجين', correct: false }
+                ]
+            },
+            {
+                question: 'ما هو عدد ذرات الهيدروجين في جزيء الماء؟',
+                options: [
+                    { text: '2', correct: true },
+                    { text: '1', correct: false },
+                    { text: '3', correct: false },
+                    { text: '4', correct: false }
+                ]
+            }
+        ];
+        
+        // تحديد وضع اللعبة
+        function selectGameMode(mode) {
+            currentGameMode = mode;
+            document.getElementById('game-selection').classList.add('hidden');
+            
+            if (mode === 'learn') {
+                document.getElementById('learn-mode').classList.remove('hidden');
+            } else if (mode === 'build') {
+                document.getElementById('build-mode').classList.remove('hidden');
+                setupBuildMode();
+            } else if (mode === 'quiz') {
+                document.getElementById('quiz-mode').classList.remove('hidden');
+                startQuiz();
+            }
+        }
+        
+        // العودة إلى قائمة الألعاب
+        function showGameSelection() {
+            document.getElementById('learn-mode').classList.add('hidden');
+            document.getElementById('build-mode').classList.add('hidden');
+            document.getElementById('quiz-mode').classList.add('hidden');
+            document.getElementById('game-selection').classList.remove('hidden');
+        }
+        
+        // اختيار جزيء في وضع التعلم
+        function selectMolecule(moleculeId) {
+            const molecule = molecules[moleculeId];
+            alert(`مرحباً! أنت تتعرف على ${molecule.name}\n\n${molecule.description}\n\nالصيغة الكيميائية: ${molecule.formula}`);
+        }
+        
+        // إعداد وضع التجميع
+        function setupBuildMode() {
+            // اختيار جزيء عشوائي
+            const moleculeKeys = Object.keys(molecules);
+            const randomMoleculeKey = moleculeKeys[Math.floor(Math.random() * moleculeKeys.length)];
+            const molecule = molecules[randomMoleculeKey];
+            
+            document.getElementById('target-molecule').textContent = molecule.formula;
+            document.getElementById('target-name').textContent = molecule.name;
+            
+            // إضافة الذرات إلى الحاوية
+            const atomsContainer = document.getElementById('atoms-container');
+            atomsContainer.innerHTML = '';
+            
+            // إضافة الذرات المطلوبة مع بعض الذرات الإضافية
+            const allAtoms = [...molecule.atoms, 'C', 'N', 'Na', 'Cl'];
+            
+            allAtoms.forEach(atomType => {
+                const atom = document.createElement('div');
+                atom.className = `atom ${atomType} floating`;
+                atom.textContent = atomType;
+                atom.draggable = true;
+                atom.addEventListener('dragstart', handleDragStart);
+                atomsContainer.appendChild(atom);
+            });
+            
+            // إعداد منطقة التجميع
+            const buildArea = document.getElementById('build-area');
+            buildArea.innerHTML = '<p class="text-gray-400">اسحب الذرات إلى هنا</p>';
+            buildArea.addEventListener('dragover', handleDragOver);
+            buildArea.addEventListener('drop', handleDrop);
+            
+            // إعداد زر التحقق
+            document.getElementById('check-button').addEventListener('click', checkMolecule);
+        }
+        
+        // بدء السحب
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.textContent);
+            e.target.style.opacity = '0.5';
+        }
+        
+        // السماح بالإفلات
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+        
+        // معالجة الإفلات
+        function handleDrop(e) {
+            e.preventDefault();
+            const atomType = e.dataTransfer.getData('text/plain');
+            
+            // إزالة النص التوضيحي إذا كان موجوداً
+            const buildArea = document.getElementById('build-area');
+            const placeholder = buildArea.querySelector('p');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            // إنشاء ذرة جديدة في منطقة التجميع
+            const newAtom = document.createElement('div');
+            newAtom.className = `atom ${atomType} bounce`;
+            newAtom.textContent = atomType;
+            buildArea.appendChild(newAtom);
+            
+            // إعادة تعيين الشفافية للذرة المسحوبة
+            document.querySelectorAll('.atom').forEach(atom => {
+                atom.style.opacity = '1';
+            });
+        }
+        
+        // التحقق من صحة الجزيء
+        function checkMolecule() {
+            const buildArea = document.getElementById('build-area');
+            const atoms = buildArea.querySelectorAll('.atom');
+            const placedAtoms = Array.from(atoms).map(atom => atom.textContent);
+            
+            const moleculeKeys = Object.keys(molecules);
+            const currentMoleculeKey = moleculeKeys.find(key => 
+                molecules[key].formula === document.getElementById('target-molecule').textContent);
+            
+            if (currentMoleculeKey) {
+                const targetAtoms = molecules[currentMoleculeKey].atoms;
+                
+                // مقارنة الذرات (بدون ترتيب)
+                const sortedPlaced = [...placedAtoms].sort();
+                const sortedTarget = [...targetAtoms].sort();
+                
+                const isCorrect = sortedPlaced.length === sortedTarget.length && 
+                                 sortedPlaced.every((value, index) => value === sortedTarget[index]);
+                
+                if (isCorrect) {
+                    alert('أحسنت! قمت بتجميع الجزيء بشكل صحيح.');
+                    createConfetti();
+                    setTimeout(() => {
+                        setupBuildMode();
+                    }, 2000);
+                } else {
+                    alert('التركيب غير صحيح. حاول مرة أخرى!');
+                }
+            }
+        }
+        
+        // بدء الاختبار
+        function startQuiz() {
+            currentQuestion = 0;
+            quizScore = 0;
+            document.getElementById('quiz-score').textContent = quizScore;
+            showQuestion();
+        }
+        
+        // عرض سؤال الاختبار
+        function showQuestion() {
+            const question = quizQuestions[currentQuestion];
+            document.getElementById('quiz-question').textContent = question.question;
+            document.getElementById('question-number').textContent = currentQuestion + 1;
+            document.getElementById('total-questions').textContent = quizQuestions.length;
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'quiz-option';
+                optionElement.textContent = option.text;
+                optionElement.addEventListener('click', () => selectAnswer(option.correct, optionElement));
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            document.getElementById('next-question').classList.add('hidden');
+            
+            // تحديث شريط التقدم
+            const progress = ((currentQuestion) / quizQuestions.length) * 100;
+            document.getElementById('quiz-progress').style.width = `${progress}%`;
+            document.getElementById('progress-text').textContent = `${Math.round(progress)}% مكتمل`;
+        }
+        
+        // اختيار إجابة في الاختبار
+        function selectAnswer(isCorrect, element) {
+            // تعطيل جميع الخيارات
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                opt.style.pointerEvents = 'none';
+            });
+            
+            if (isCorrect) {
+                element.classList.add('correct');
+                quizScore += 20;
+                document.getElementById('quiz-score').textContent = quizScore;
+                createConfetti();
+            } else {
+                element.classList.add('wrong');
+                // إظهار الإجابة الصحيحة
+                document.querySelectorAll('.quiz-option').forEach(opt => {
+                    if (quizQuestions[currentQuestion].options.find(o => o.text === opt.textContent && o.correct)) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+            
+            document.getElementById('next-question').classList.remove('hidden');
+        }
+        
+        // الانتقال إلى السؤال التالي
+        document.getElementById('next-question').addEventListener('click', () => {
+            currentQuestion++;
+            
+            if (currentQuestion < quizQuestions.length) {
+                showQuestion();
+            } else {
+                // انتهاء الاختبار
+                const percentage = (quizScore / 100) * 100;
+                alert(`انتهى الاختبار!\n\nنتيجتك: ${quizScore}/100 (${percentage}%)\n\n${percentage >= 60 ? 'ممتاز! لديك معرفة جيدة بالمركبات الكيميائية.' : 'حاول مرة أخرى لتحسين نتيجتك.'}`);
+                showGameSelection();
+            }
+        });
+        
+        // إنشاء تأثير الكونفيتي
+        function createConfetti() {
+            const container = document.querySelector('body');
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.backgroundColor = getRandomColor();
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = `${Math.random() * 100}%`;
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
+                
+                container.appendChild(confetti);
+                
+                // إزالة الكونفيتي بعد الانتهاء من الرسوم المتحركة
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+            
+            // إضافة رسوم متحركة للسقوط
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fall {
+                    0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(1000px) rotate(360deg); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // الحصول على لون عشوائي
+        function getRandomColor() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+    </script>
+</body>
+</html>
