@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIMSS ARCADE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1E90FF; /* Dodger Blue */
+            --secondary: #4169E1; /* Royal Blue */
+            --accent: #87CEEB; /* Sky Blue */
+            --purple: #6A5ACD; /* Slate Blue */
+            --blue: #118AB2;
+            --green: #4682B4; /* Steel Blue */
+            --light: #F8F9FA;
+            --dark: #2D3047;
+            --light-purple: #E6E6FA;
+            --very-light-purple: #F5F0FF;
+        }
+
+        body {
+            background: #F0F8FF; /* Alice Blue */
+            color: var(--dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            font-family: 'Nunito', sans-serif;
+            position: relative;
+        }
+
+        /* ----------------------------------- */
+        /* Header with Stars Animation */
+        /* ----------------------------------- */
+        .header {
+            background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+            color: #f8f9fa;
+            text-align: center;
+            padding: 60px 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stars {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .stars::before, .stars::after {
+            content: '';
+            position: absolute;
+            background-color: transparent;
+            border-radius: 50%;
+            box-shadow: 
+                10px 10px 0 #fff, 30px 50px 0 #e0f2f7, 80px 100px 0 #fff, 150px 20px 0 #e0f2f7, 
+                200px 150px 0 #fff, 250px 70px 0 #e0f2f7, 300px 180px 0 #fff, 350px 40px 0 #e0f2f7,
+                400px 120px 0 #fff, 450px 60px 0 #e0f2f7, 500px 190px 0 #fff, 550px 10px 0 #e0f2f7;
+            width: 2px;
+            height: 2px;
+            opacity: 0.8;
+            animation: meteor-shower 15s linear infinite;
+        }
+
+        .stars::after {
+            box-shadow: 
+                600px 30px 0 #fff, 650px 140px 0 #e0f2f7, 700px 50px 0 #fff, 750px 170px 0 #e0f2f7, 
+                800px 80px 0 #fff, 850px 110px 0 #e0f2f7, 900px 20px 0 #fff, 950px 160px 0 #e0f2f7, 
+                1000px 90px 0 #fff, 1050px 10px 0 #e0f2f7, 1100px 150px 0 #fff, 1150px 50px 0 #e0f2f7;
+            animation: meteor-shower 20s linear infinite reverse; 
+        }
+
+        @keyframes meteor-shower {
+            0% { transform: translateY(-50px); }
+            100% { transform: translateY(200px); }
+        }
+
+        .header h1, .header p {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 5px;
+            letter-spacing: 1.5px;
+            z-index: 2;
+            position: relative;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 25px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s;
+            position: relative;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 0;
+            gap: 40px;
+        }
+
+        .hero-frame {
+            background: white;
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border: 5px dashed #739EC9; /* Updated to #739EC9 */
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .hero-frame h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            font-family: 'Comic Neue', cursive;
+            background: linear-gradient(90deg, #1E3A8A, #3B82F6, #60A5FA, #93C5FD);
+            background-size: 400% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: none;
+            animation: gradientShift 4s ease infinite;
+            padding: 10px;
+            width: 100%; /* Ensure full width for proper centering */
+            display: block; /* Change to block for full width */
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: var(--light);
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-top: 8px solid var(--primary);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .card:nth-child(2) {
+            border-top-color: var(--secondary);
+        }
+
+        .card:nth-child(3) {
+            border-top-color: var(--accent);
+        }
+
+        .card:nth-child(4) {
+            border-top-color: var(--green);
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--primary); /* Blue shade */
+        }
+
+        .card:nth-child(2) .card-icon {
+            color: var(--secondary); /* Royal Blue */
+        }
+
+        .card:nth-child(3) .card-icon {
+            color: var(--accent); /* Sky Blue */
+        }
+
+        .card:nth-child(4) .card-icon {
+            color: var(--green); /* Steel Blue */
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            font-family: 'Comic Neue', cursive;
+        }
+
+        .card p {
+            line-height: 1.6;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            border-top: 3px dashed #739EC9; /* Updated to #739EC9 */
+            margin-top: 60px;
+            font-size: 1rem;
+            color: var(--dark);
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            nav ul {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+
+            .hero-frame {
+                padding: 25px;
+            }
+
+            .hero-frame h2 {
+                font-size: 2rem;
+            }
+
+            .cards-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            nav a {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with Stars Animation -->
+    <header class="header">
+        <div class="stars"></div>
+        <h1>TIMSS ARCADE</h1>
+        <p>مغامرات في الرياضيات والعلوم </p>
+        <nav>
+            <ul>
+                <li><a href="#">الرئيسية</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <section class="hero">
+            <div class="hero-frame">
+                <h2>أنشطة الرياضيات الممتعة</h2>
+                <div class="cards-container">
+                    <a href="https://talented-nation.github.io/timss2027/aimath.html" class="card" target="_blank">
+                        <div class="card-icon">
+                            <i class="fas fa-laptop-code"></i>
+                        </div>
+                        <h3>منصة التدريب الرياضيات</h3>
+                        <p>تدرب على مهارات الرياضيات من خلال منصة تفاعلية ممتعة</p>
+                    </a>
+                    <a href="https://talented-nation.github.io/timss2027/game2.html" class="card" target="_blank">
+                        <div class="card-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>مسابقة كأس الرياضيات</h3>
+                        <p>شارك في مسابقة شيقة وتنافس مع أصدقائك في حل المسائل</p>
+                    </a>
+                    <a href="https://talented-nation.github.io/timss2027/arcade2.html" class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-puzzle-piece"></i>
+                        </div>
+                        <h3>أنشطة الرياضيات</h3>
+                        <p>استمتع بمجموعة متنوعة من الأنشطة والألعاب التعليمية</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>TIMSS ARCADE  &copy; 2025 | تعلم الرياضيات والعلوم الممتع</p>
+        </footer>
+    </div>
+</body>
+</html>
