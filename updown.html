@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة ترتيب الأرقام | للصف الرابع</title>
+    <!-- تضمين مكتبة Tailwind CSS للتصميم -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* تعريف خط يدعم الأرقام العربية بشكل جيد وواضح */
+        @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@400;700&display=swap');
+        body {
+            font-family: 'Almarai', sans-serif;
+            direction: rtl;
+        }
+
+        /* تنسيق خاص بالعناصر القابلة للسحب والإفلات */
+        .number-item {
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+            touch-action: none; /* مهم للتعامل مع اللمس */
+        }
+
+        .number-item:active {
+            cursor: grabbing;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+        }
+
+        .drop-zone {
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .drop-zone.drag-over {
+            background-color: #d1fae5; /* لون فاتح عند السحب فوق المنطقة */
+            border-color: #34d399;
+        }
+
+        /* تنسيق لتأثير النجاح أو الخطأ */
+        #feedback-message.success {
+            background-color: #10b981;
+        }
+        #feedback-message.error {
+            background-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 md:p-10 border-4 border-emerald-500">
+        <!-- عنوان اللعبة والتعليمات -->
+        <h1 class="text-3xl md:text-4xl font-extrabold text-center text-emerald-700 mb-2">لعبة ترتيب الأرقام</h1>
+        <p class="text-center text-gray-600 mb-6 text-lg">الصف الرابع - مهارة الترتيب</p>
+
+        <!-- منطقة التعليمات الديناميكية -->
+        <div id="instruction-area" class="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 mb-8 rounded-lg text-center font-bold text-xl">
+            <!-- سيتم تحديث هذا النص بواسطة JavaScript -->
+        </div>
+
+        <!-- منطقة إسقاط الأرقام (Drop Zones) -->
+        <div id="drop-zones-container" class="flex justify-center flex-wrap gap-4 mb-8">
+            <!-- سيتم إنشاء مناطق الإسقاط هنا بواسطة JavaScript -->
+        </div>
+
+        <!-- منطقة الأرقام القابلة للسحب (Draggable Items) -->
+        <div id="numbers-container" class="flex justify-center flex-wrap gap-4 p-4 bg-gray-100 rounded-lg shadow-inner mb-8 min-h-[80px]">
+            <!-- سيتم عرض الأرقام القابلة للسحب هنا بواسطة JavaScript -->
+        </div>
+
+        <!-- أزرار التحكم والرسائل -->
+        <div class="flex flex-col md:flex-row justify-center gap-4">
+            <button id="check-button" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg transition duration-200 text-xl disabled:opacity-50">
+                تحقق من الترتيب
+            </button>
+            <button id="new-game-button" class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg transition duration-200 text-xl">
+                جولة جديدة
+            </button>
+        </div>
+
+        <!-- رسالة التقييم والنتيجة -->
+        <div id="feedback-message" class="mt-6 p-4 text-white font-bold text-center rounded-lg text-2xl hidden">
+            <!-- رسالة النجاح أو الخطأ ستظهر هنا -->
+        </div>
+    </div>
+
+    <script>
+        // المتغيرات العالمية
+        let currentNumbers = []; // الأرقام الأصلية (بالأرقام اللاتينية)
+        let isAscending = true;  // وضع الترتيب (صحيح لـ تصاعدي، خطأ لـ تنازلي)
+        const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+        // العناصر الرئيسية في DOM
+        const numbersContainer = document.getElementById('numbers-container');
+        const dropZonesContainer = document.getElementById('drop-zones-container');
+        const instructionArea = document.getElementById('instruction-area');
+        const checkButton = document.getElementById('check-button');
+        const newGameButton = document.getElementById('new-game-button');
+        const feedbackMessage = document.getElementById('feedback-message');
+
+        // ----------------------------------------------------------------------
+        // 1. وظائف تحويل الأرقام
+        // ----------------------------------------------------------------------
+
+        /**
+         * تحويل رقم لاتيني (123) إلى رقم عربي (١٢٣).
+         * @param {number} num - الرقم المراد تحويله.
+         * @returns {string} - الرقم المحول كـ نص عربي.
+         */
+        function toArabicNumerals(num) {
+            return String(num).split('').map(digit => arabicNumerals[parseInt(digit)]).join('');
+        }
+
+        /**
+         * تحويل رقم عربي (١٢٣) إلى رقم لاتيني (123).
+         * @param {string} arabicStr - النص الرقمي العربي.
+         * @returns {number} - الرقم اللاتيني المحول.
+         */
+        function toLatinNumber(arabicStr) {
+            let latinStr = '';
+            for (let char of arabicStr) {
+                const index = arabicNumerals.indexOf(char);
+                if (index !== -1) {
+                    latinStr += index;
+                } else {
+                    // إذا كان الحرف ليس رقماً عربياً، أضفه كما هو
+                    latinStr += char;
+                }
+            }
+            return parseInt(latinStr);
+        }
+
+        // ----------------------------------------------------------------------
+        // 2. وظائف تهيئة اللعبة
+        // ----------------------------------------------------------------------
+
+        /**
+         * توليد رقم صحيح عشوائي ضمن مدى معين.
+         * @param {number} min - الحد الأدنى.
+         * @param {number} max - الحد الأقصى.
+         * @returns {number} - الرقم العشوائي.
+         */
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        /**
+         * توليد مجموعة من الأرقام العشوائية لتبدأ بها اللعبة.
+         * @param {number} count - عدد الأرقام المراد توليدها.
+         * @returns {number[]} - مصفوفة الأرقام.
+         */
+        function generateRandomNumbers(count = 4) {
+            const numbers = new Set();
+            const min = 1000; // أرقام بأربع خانات
+            const max = 9999;
+
+            while (numbers.size < count) {
+                // نضمن عدم وجود تكرار
+                numbers.add(getRandomInt(min, max));
+            }
+            return Array.from(numbers);
+        }
+
+        /**
+         * بدأ جولة لعب جديدة.
+         */
+        function startNewGame() {
+            // 1. تهيئة الحالة
+            currentNumbers = generateRandomNumbers(4);
+            isAscending = Math.random() < 0.5; // اختيار عشوائي للوضع (تصاعدي أو تنازلي)
+
+            // 2. عرض التعليمات
+            const modeText = isAscending ? 'الأصغر إلى الأكبر (تصاعدياً)' : 'الأكبر إلى الأصغر (تنازلياً)';
+            instructionArea.innerHTML = `
+                قم بترتيب الأرقام التالية من <span class="text-red-600">${modeText}</span>.
+                اسحب الأرقام إلى المربعات بالترتيب الصحيح.
+            `;
+
+            // 3. مسح الأرقام ومناطق الإسقاط السابقة
+            numbersContainer.innerHTML = '';
+            dropZonesContainer.innerHTML = '';
+            feedbackMessage.classList.add('hidden');
+            feedbackMessage.classList.remove('success', 'error');
+            checkButton.disabled = false;
+
+
+            // 4. إعداد الأرقام القابلة للسحب (Draggable)
+            const numbersForDisplay = [...currentNumbers];
+            // خلط الأرقام المعروضة لتكون غير مرتبة
+            numbersForDisplay.sort(() => Math.random() - 0.5);
+
+            numbersForDisplay.forEach(number => {
+                const arabicNum = toArabicNumerals(number);
+                const item = document.createElement('div');
+                item.className = 'number-item px-6 py-3 bg-yellow-400 text-yellow-900 font-extrabold rounded-lg text-3xl shadow-md border-b-4 border-yellow-600 w-32 text-center';
+                item.textContent = arabicNum;
+                item.setAttribute('draggable', true);
+                item.dataset.value = number; // تخزين القيمة اللاتينية الحقيقية للتحقق
+                numbersContainer.appendChild(item);
+                // إضافة مستمعات أحداث السحب
+                addDragListeners(item);
+            });
+
+            // 5. إعداد مناطق الإسقاط (Drop Zones)
+            for (let i = 0; i < currentNumbers.length; i++) {
+                const zone = document.createElement('div');
+                // هذه هي الفئات التي تمثل الحالة الفارغة للمنطقة
+                zone.className = 'drop-zone flex items-center justify-center w-32 h-16 bg-white border-2 border-dashed border-gray-400 rounded-lg text-gray-500 font-medium text-xl p-2 min-w-[120px]';
+                zone.dataset.index = i;
+                zone.textContent = `الموقع ${toArabicNumerals(i + 1)}`;
+                dropZonesContainer.appendChild(zone);
+                // إضافة مستمعات أحداث الإفلات
+                addDropListeners(zone);
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 3. وظائف السحب والإفلات (Drag and Drop)
+        // ----------------------------------------------------------------------
+
+        let draggedItem = null;
+
+        function addDragListeners(item) {
+            // مستمعات السحب للماوس
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = item;
+                item.classList.add('opacity-50');
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('opacity-50');
+                // نترك draggedItem كما هو حتى يتم معالجته بواسطة drop
+            });
+
+            // دعم اللمس (Touch support)
+             item.addEventListener('touchstart', (e) => {
+                draggedItem = item;
+                item.classList.add('opacity-50');
+                e.preventDefault(); // لمنع التمرير الافتراضي
+                
+                // إضافة معالج لـ touchmove لتحريك العنصر مع إصبع المستخدم (اختياري لتحسين تجربة اللمس)
+                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            });
+
+             item.addEventListener('touchend', (e) => {
+                item.classList.remove('opacity-50');
+                // إزالة معالج touchmove
+                document.removeEventListener('touchmove', handleTouchMove);
+                
+                // محاكاة الإفلات (Drop) في موقع اللمس النهائي
+                const touch = e.changedTouches[0];
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                // البحث عن أقرب منطقة إسقاط (Drop Zone)
+                const dropZone = targetElement.closest('.drop-zone');
+                
+                if (dropZone && draggedItem) {
+                    // تنفيذ منطق الإفلات
+                    simulateDrop(dropZone, draggedItem);
+                }
+                
+                // مهم: تعيين العنصر المسحوب إلى null بعد انتهاء دورة اللمس
+                draggedItem = null;
+            });
+        }
+        
+        /**
+         * (اختياري) تحريك العنصر المسحوب أثناء اللمس
+         */
+        function handleTouchMove(e) {
+            if (!draggedItem) return;
+            // يمكن إضافة منطق مرئي هنا لتحريك العنصر أثناء السحب (تم تركه فارغاً لتجنب تعقيد الكود)
+        }
+
+        /**
+         * تنفيذ منطق الإفلات لنقل العنصر إلى منطقة الإسقاط
+         * @param {HTMLElement} zone - منطقة الإسقاط المستهدفة
+         * @param {HTMLElement} item - العنصر المراد إسقاطه
+         */
+        function simulateDrop(zone, item) {
+            // 1. إذا كان هناك رقم موجود بالفعل في منطقة الإسقاط، نرجعه إلى حاوية الأرقام الأصلية
+            const existingItem = zone.querySelector('.number-item');
+            if (existingItem) {
+                // نضمن أن العناصر التي تعود إلى الحاوية الأساسية تكون قابلة للسحب
+                numbersContainer.appendChild(existingItem);
+            }
+
+            // 2. نقل العنصر المسحوب إلى منطقة الإسقاط
+            // ملاحظة هامة: يجب أن يتم مسح المحتوى القديم قبل إضافة العنصر الجديد
+            zone.innerHTML = ''; // مسح النص 'الموقع X' وأي محتوى سابق
+            zone.appendChild(item);
+            
+            // 3. التأكد من إزالة فئة الشفافية من العنصر المسحوب
+            item.classList.remove('opacity-50');
+
+            // 4. تحديث فئات المنطقة (Zone) لتبدو "ممتلئة" بدلاً من "فارغة"
+            // إزالة فئات "الحالة الفارغة" (الخطوط المتقطعة واللون الرمادي)
+            zone.classList.remove('border-dashed', 'border-gray-400', 'text-gray-500', 'drag-over', 'bg-white');
+            zone.classList.add('border-solid', 'border-emerald-500', 'bg-gray-100'); // لإظهار أنها الآن ممتلئة بنجاح
+            
+            // تم حذف السطر zone.textContent = ''; الذي كان يمسح العنصر بعد إضافته بنجاح.
+        }
+
+
+        function addDropListeners(zone) {
+            // مستمعات الإفلات للماوس
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault(); // السماح بالإفلات
+                zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+
+                if (draggedItem) {
+                    // استخدام دالة المساعدة المحدثة
+                    simulateDrop(zone, draggedItem);
+                    // تعيين draggedItem إلى null بعد انتهاء دورة الإفلات بالماوس
+                    draggedItem = null;
+                }
+            });
+            
+            // مستمع touchend تم دمجه في addDragListeners للتعامل مع الإفلات باللمس
+        }
+
+
+        // ----------------------------------------------------------------------
+        // 4. وظيفة التحقق من الإجابة
+        // ----------------------------------------------------------------------
+
+        /**
+         * التحقق من ترتيب الأرقام في مناطق الإسقاط.
+         */
+        function checkOrder() {
+            // 1. الحصول على الأرقام من مناطق الإسقاط
+            const dropZones = Array.from(dropZonesContainer.children);
+            // البحث عن العناصر التي تحمل فئة number-item داخل كل منطقة إسقاط
+            const userOrderElements = dropZones.map(zone => zone.querySelector('.number-item'));
+
+            // التحقق من أن جميع المناطق تحتوي على رقم
+            if (userOrderElements.some(el => !el)) {
+                showMessage('يجب وضع جميع الأرقام في المربعات أولاً!', 'error');
+                return;
+            }
+
+            // استخراج الأرقام اللاتينية من ترتيب المستخدم
+            const userOrder = userOrderElements.map(el => parseInt(el.dataset.value));
+
+            // 2. حساب الترتيب الصحيح
+            const correctOrder = [...currentNumbers].sort((a, b) => {
+                return isAscending ? a - b : b - a; // تصاعدي (a-b) أو تنازلي (b-a)
+            });
+
+            // 3. المقارنة
+            const isCorrect = userOrder.every((value, index) => value === correctOrder[index]);
+
+            if (isCorrect) {
+                showMessage('أحسنت! الترتيب صحيح وممتاز!', 'success');
+                checkButton.disabled = true; // تعطيل زر التحقق بعد الإجابة الصحيحة
+            } else {
+                showMessage('حاول مرة أخرى! الترتيب ليس صحيحاً تماماً.', 'error');
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 5. وظيفة عرض الرسائل
+        // ----------------------------------------------------------------------
+
+        /**
+         * عرض رسالة تقييم في أسفل الشاشة.
+         * @param {string} message - نص الرسالة.
+         * @param {('success'|'error')} type - نوع الرسالة.
+         */
+        function showMessage(message, type) {
+            feedbackMessage.textContent = message;
+            feedbackMessage.classList.remove('hidden', 'success', 'error');
+            feedbackMessage.classList.add(type);
+        }
+
+        // ----------------------------------------------------------------------
+        // 6. تهيئة المستمعات والبدء
+        // ----------------------------------------------------------------------
+
+        // ربط الأزرار بالوظائف
+        checkButton.addEventListener('click', checkOrder);
+        newGameButton.addEventListener('click', startNewGame);
+
+        // بدء اللعبة عند تحميل الصفحة
+        window.onload = startNewGame;
+
+    </script>
+</body>
+</html>

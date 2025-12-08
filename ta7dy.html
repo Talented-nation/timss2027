@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة ترتيب الأرقام - الصف الرابع</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #4a6fa5;
+            padding-bottom: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #4a6fa5;
+            font-size: 1.2rem;
+        }
+        
+        .game-controls {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        select, button {
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            background-color: white;
+            cursor: pointer;
+        }
+        
+        select:focus {
+            border-color: #4a6fa5;
+            outline: none;
+        }
+        
+        button {
+            background-color: #4a6fa5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background-color: #3a5a80;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .game-area {
+            margin-bottom: 30px;
+        }
+        
+        .instructions {
+            background-color: #e8f4fc;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-right: 5px solid #4a6fa5;
+        }
+        
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .numbers-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            min-height: 120px;
+            padding: 20px;
+            border-radius: 15px;
+            background-color: #f8f9fa;
+            border: 2px dashed #c3cfe2;
+        }
+        
+        .number-box {
+            width: 80px;
+            height: 80px;
+            background-color: #4a6fa5;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: move;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .number-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .number-box.dragging {
+            opacity: 0.7;
+            transform: scale(1.1);
+        }
+        
+        .drop-zone {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            padding: 20px;
+            border-radius: 15px;
+            background-color: #f8f9fa;
+            border: 2px dashed #c3cfe2;
+            min-height: 120px;
+        }
+        
+        .drop-zone .number-box {
+            background-color: #2ecc71;
+        }
+        
+        .drop-zone .number-box.incorrect {
+            background-color: #e74c3c;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 15px;
+        }
+        
+        .score-box, .timer-box, .level-box {
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .score-box h3, .timer-box h3, .level-box h3 {
+            color: #4a6fa5;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .score-value, .timer-value, .level-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .feedback {
+            text-align: center;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .feedback.correct {
+            background-color: #d5edda;
+            color: #155724;
+        }
+        
+        .feedback.incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .feedback.neutral {
+            background-color: #e8f4fc;
+            color: #0c5460;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .actions button {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+        }
+        
+        #checkBtn {
+            background-color: #2ecc71;
+        }
+        
+        #checkBtn:hover {
+            background-color: #27ae60;
+        }
+        
+        #hintBtn {
+            background-color: #f39c12;
+        }
+        
+        #hintBtn:hover {
+            background-color: #d68910;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .modal p {
+            margin-bottom: 25px;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+        
+        .modal button {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .number-box {
+                width: 70px;
+                height: 70px;
+                font-size: 1.8rem;
+            }
+            
+            .game-controls {
+                flex-direction: column;
+            }
+        }
+        
+        .arabic-numeral {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-sort-numeric-down-alt"></i> لعبة ترتيب الأرقام</h1>
+            <p class="subtitle">للصف الرابع - رتب الأرقام من الأكبر إلى الأصغر أو من الأصغر إلى الأكبر</p>
+        </header>
+        
+        <div class="game-controls">
+            <div class="control-group">
+                <label for="level"><i class="fas fa-chart-line"></i> مستوى الصعوبة:</label>
+                <select id="level">
+                    <option value="easy">سهل (أرقام من ١ إلى ٥٠)</option>
+                    <option value="medium" selected>متوسط (أرقام من ١٠ إلى ١٠٠)</option>
+                    <option value="hard">صعب (أرقام من ١٠٠ إلى ١٠٠٠)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="order"><i class="fas fa-sort-amount-down"></i> نوع الترتيب:</label>
+                <select id="order">
+                    <option value="desc">من الأكبر إلى الأصغر</option>
+                    <option value="asc">من الأصغر إلى الأكبر</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="count"><i class="fas fa-hashtag"></i> عدد الأرقام:</label>
+                <select id="count">
+                    <option value="5">٥ أرقام</option>
+                    <option value="6" selected>٦ أرقام</option>
+                    <option value="7">٧ أرقام</option>
+                    <option value="8">٨ أرقام</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button id="startBtn"><i class="fas fa-play-circle"></i> بدء اللعبة</button>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <div class="instructions">
+                <h3><i class="fas fa-info-circle"></i> طريقة اللعب:</h3>
+                <p>اسحب الأرقام من المنطقة العلوية إلى المنطقة السفلية بالترتيب الصحيح حسب نوع الترتيب المحدد. اضغط على زر "تحقق" عندما تنتهي.</p>
+            </div>
+            
+            <h3><i class="fas fa-random"></i> الأرقام: (اسحبها بالترتيب الصحيح)</h3>
+            <div class="numbers-container" id="numbersContainer">
+                <!-- الأرقام ستضاف هنا بالجافاسكريبت -->
+            </div>
+            
+            <h3><i class="fas fa-list-ol"></i> منطقة الترتيب:</h3>
+            <div class="drop-zone" id="dropZone">
+                <!-- الأرقام المرتبة ستوضع هنا -->
+            </div>
+            
+            <div class="feedback neutral" id="feedback">
+                قم بترتيب الأرقام في المنطقة السفلية بالترتيب الصحيح
+            </div>
+            
+            <div class="actions">
+                <button id="checkBtn"><i class="fas fa-check-circle"></i> تحقق من الإجابة</button>
+                <button id="hintBtn"><i class="fas fa-lightbulb"></i> عرض تلميح</button>
+                <button id="resetBtn"><i class="fas fa-redo"></i> إعادة ترتيب</button>
+            </div>
+        </div>
+        
+        <div class="game-info">
+            <div class="score-box">
+                <h3><i class="fas fa-star"></i> النقاط</h3>
+                <div class="score-value" id="score">٠</div>
+            </div>
+            
+            <div class="timer-box">
+                <h3><i class="fas fa-clock"></i> الوقت</h3>
+                <div class="timer-value" id="timer">٠٠:٠٠</div>
+            </div>
+            
+            <div class="level-box">
+                <h3><i class="fas fa-trophy"></i> المستوى</h3>
+                <div class="level-value" id="levelDisplay">١</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة النجاح -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-trophy"></i> أحسنت!</h2>
+            <p id="successMessage">لقد رتبت الأرقام بشكل صحيح! اكسبت <span id="pointsEarned">٠</span> نقطة.</p>
+            <p>الوقت المستغرق: <span id="timeTaken">٠٠:٠٠</span></p>
+            <button id="nextLevelBtn"><i class="fas fa-forward"></i> المستوى التالي</button>
+        </div>
+    </div>
+    
+    <!-- نافذة التلميح -->
+    <div class="modal" id="hintModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-lightbulb"></i> تلميح</h2>
+            <p id="hintText"></p>
+            <button id="closeHintBtn"><i class="fas fa-times"></i> إغلاق</button>
+        </div>
+    </div>
+    
+    <script>
+        // عناصر DOM
+        const numbersContainer = document.getElementById('numbersContainer');
+        const dropZone = document.getElementById('dropZone');
+        const startBtn = document.getElementById('startBtn');
+        const checkBtn = document.getElementById('checkBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const levelSelect = document.getElementById('level');
+        const orderSelect = document.getElementById('order');
+        const countSelect = document.getElementById('count');
+        const feedback = document.getElementById('feedback');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const successModal = document.getElementById('successModal');
+        const hintModal = document.getElementById('hintModal');
+        const hintText = document.getElementById('hintText');
+        const closeHintBtn = document.getElementById('closeHintBtn');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const pointsEarned = document.getElementById('pointsEarned');
+        const timeTaken = document.getElementById('timeTaken');
+        const successMessage = document.getElementById('successMessage');
+        
+        // متغيرات اللعبة
+        let score = 0;
+        let level = 1;
+        let time = 0;
+        let timerInterval;
+        let currentNumbers = [];
+        let correctOrder = [];
+        let gameActive = false;
+        
+        // الأرقام العربية
+        const arabicNumerals = {
+            0: '٠', 1: '١', 2: '٢', 3: '٣', 4: '٤', 
+            5: '٥', 6: '٦', 7: '٧', 8: '٨', 9: '٩'
+        };
+        
+        // تحويل الأرقام إلى عربية
+        function toArabicNumeral(num) {
+            return num.toString().split('').map(digit => arabicNumerals[digit]).join('');
+        }
+        
+        // بدء المؤقت
+        function startTimer() {
+            clearInterval(timerInterval);
+            time = 0;
+            timerElement.textContent = "٠٠:٠٠";
+            
+            timerInterval = setInterval(() => {
+                time++;
+                const minutes = Math.floor(time / 60);
+                const seconds = time % 60;
+                const arabicMinutes = toArabicNumeral(minutes.toString().padStart(2, '0'));
+                const arabicSeconds = toArabicNumeral(seconds.toString().padStart(2, '0'));
+                timerElement.textContent = `${arabicMinutes}:${arabicSeconds}`;
+            }, 1000);
+        }
+        
+        // إنشاء أرقام عشوائية بناءً على المستوى
+        function generateNumbers() {
+            const count = parseInt(countSelect.value);
+            const levelValue = levelSelect.value;
+            let min, max;
+            
+            switch(levelValue) {
+                case 'easy':
+                    min = 1;
+                    max = 50;
+                    break;
+                case 'medium':
+                    min = 10;
+                    max = 100;
+                    break;
+                case 'hard':
+                    min = 100;
+                    max = 1000;
+                    break;
+            }
+            
+            // إنشاء مجموعة أرقام عشوائية
+            const numbers = new Set();
+            while(numbers.size < count) {
+                numbers.add(Math.floor(Math.random() * (max - min + 1)) + min);
+            }
+            
+            currentNumbers = Array.from(numbers);
+            correctOrder = [...currentNumbers];
+            
+            // ترتيب الأرقام حسب النوع المحدد
+            const order = orderSelect.value;
+            if(order === 'desc') {
+                correctOrder.sort((a, b) => b - a); // من الأكبر إلى الأصغر
+            } else {
+                correctOrder.sort((a, b) => a - b); // من الأصغر إلى الأكبر
+            }
+            
+            return [...currentNumbers].sort(() => Math.random() - 0.5); // ترتيب عشوائي للعرض
+        }
+        
+        // عرض الأرقام في اللعبة
+        function displayNumbers(numbers) {
+            numbersContainer.innerHTML = '';
+            dropZone.innerHTML = '';
+            
+            numbers.forEach(num => {
+                const numberBox = document.createElement('div');
+                numberBox.className = 'number-box arabic-numeral';
+                numberBox.textContent = toArabicNumeral(num);
+                numberBox.dataset.value = num;
+                numberBox.draggable = true;
+                
+                numberBox.addEventListener('dragstart', dragStart);
+                
+                numbersContainer.appendChild(numberBox);
+            });
+            
+            // جعل منطقة الإسقاط قابلة لاستقبال العناصر المسحوبة
+            dropZone.addEventListener('dragover', dragOver);
+            dropZone.addEventListener('drop', drop);
+        }
+        
+        // بدء اللعبة
+        function startGame() {
+            gameActive = true;
+            const shuffledNumbers = generateNumbers();
+            displayNumbers(shuffledNumbers);
+            startTimer();
+            feedback.className = 'feedback neutral';
+            feedback.innerHTML = 'قم بترتيب الأرقام في المنطقة السفلية بالترتيب الصحيح';
+            
+            // تحديث عرض المستوى
+            levelDisplay.textContent = toArabicNumeral(level);
+        }
+        
+        // أحداث السحب والإفلات
+        let draggedElement = null;
+        
+        function dragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+        }
+        
+        function dragOver(e) {
+            e.preventDefault();
+        }
+        
+        function drop(e) {
+            e.preventDefault();
+            
+            if (!draggedElement || !gameActive) return;
+            
+            // إضافة الرقم المسحوب إلى منطقة الإسقاط
+            const clonedElement = draggedElement.cloneNode(true);
+            clonedElement.addEventListener('dragstart', dragStart);
+            clonedElement.draggable = true;
+            
+            // إضافة زر إزالة
+            const removeBtn = document.createElement('i');
+            removeBtn.className = 'fas fa-times remove-btn';
+            removeBtn.style.position = 'absolute';
+            removeBtn.style.top = '5px';
+            removeBtn.style.left = '5px';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.fontSize = '0.8rem';
+            removeBtn.style.color = 'white';
+            removeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.parentElement.remove();
+            });
+            
+            clonedElement.style.position = 'relative';
+            clonedElement.appendChild(removeBtn);
+            dropZone.appendChild(clonedElement);
+            
+            // إزالة الرقم من منطقة المصدر إذا كان موجودًا هناك
+            if (draggedElement.parentElement === numbersContainer) {
+                draggedElement.remove();
+            }
+            
+            draggedElement.classList.remove('dragging');
+            draggedElement = null;
+        }
+        
+        // التحقق من الإجابة
+        function checkAnswer() {
+            if (!gameActive) return;
+            
+            const droppedNumbers = Array.from(dropZone.querySelectorAll('.number-box'));
+            const userOrder = droppedNumbers.map(box => parseInt(box.dataset.value));
+            
+            let isCorrect = true;
+            
+            // التحقق من صحة الترتيب
+            for (let i = 0; i < userOrder.length; i++) {
+                if (userOrder[i] !== correctOrder[i]) {
+                    isCorrect = false;
+                    droppedNumbers[i].classList.add('incorrect');
+                } else {
+                    droppedNumbers[i].classList.remove('incorrect');
+                }
+            }
+            
+            if (isCorrect && userOrder.length === correctOrder.length) {
+                // الإجابة صحيحة
+                clearInterval(timerInterval);
+                gameActive = false;
+                
+                // حساب النقاط المستحقة
+                const timeBonus = Math.max(0, 300 - time); // 300 ثانية كحد أقصى
+                const basePoints = 100 * level;
+                const points = basePoints + timeBonus;
+                
+                score += points;
+                scoreElement.textContent = toArabicNumeral(score);
+                
+                // إظهار رسالة النجاح
+                pointsEarned.textContent = toArabicNumeral(points);
+                timeTaken.textContent = timerElement.textContent;
+                
+                const orderType = orderSelect.value === 'desc' ? 'من الأكبر إلى الأصغر' : 'من الأصغر إلى الأكبر';
+                successMessage.textContent = `لقد رتبت الأرقام ${orderType} بشكل صحيح! اكسبت ${toArabicNumeral(points)} نقطة.`;
+                
+                successModal.style.display = 'flex';
+                
+                feedback.className = 'feedback correct';
+                feedback.innerHTML = '<i class="fas fa-check-circle"></i> أحسنت! الإجابة صحيحة';
+            } else {
+                // الإجابة غير صحيحة
+                feedback.className = 'feedback incorrect';
+                feedback.innerHTML = '<i class="fas fa-times-circle"></i> الترتيب غير صحيح، حاول مرة أخرى!';
+                
+                // عرض الأرقام الصحيحة لفترة وجيزة
+                droppedNumbers.forEach(box => {
+                    if (box.classList.contains('incorrect')) {
+                        box.style.animation = 'shake 0.5s';
+                        setTimeout(() => {
+                            box.style.animation = '';
+                        }, 500);
+                    }
+                });
+            }
+        }
+        
+        // عرض تلميح
+        function showHint() {
+            if (!gameActive) return;
+            
+            const orderType = orderSelect.value === 'desc' ? 'من الأكبر إلى الأكبر' : 'من الأصغر إلى الأكبر';
+            const firstTwo = correctOrder.slice(0, 2).map(num => toArabicNumeral(num)).join(' و ');
+            const lastTwo = correctOrder.slice(-2).map(num => toArabicNumeral(num)).join(' و ');
+            
+            hintText.textContent = `يجب ترتيب الأرقام ${orderType}. الرقمين الأكبر هما ${firstTwo} والرقمين الأصغر هما ${lastTwo}.`;
+            
+            hintModal.style.display = 'flex';
+            
+            // خصم نقاط للتلميح
+            score = Math.max(0, score - 10);
+            scoreElement.textContent = toArabicNumeral(score);
+        }
+        
+        // إعادة ترتيب الأرقام
+        function resetGame() {
+            if (!gameActive) return;
+            
+            const shuffledNumbers = [...currentNumbers].sort(() => Math.random() - 0.5);
+            displayNumbers(shuffledNumbers);
+            feedback.className = 'feedback neutral';
+            feedback.innerHTML = 'تم إعادة ترتيب الأرقام، حاول مرة أخرى!';
+        }
+        
+        // الانتقال للمستوى التالي
+        function nextLevel() {
+            successModal.style.display = 'none';
+            level++;
+            
+            // زيادة الصعوبة تدريجياً
+            if (level % 3 === 0 && countSelect.value < 8) {
+                countSelect.value = parseInt(countSelect.value) + 1;
+            }
+            
+            if (level > 3 && levelSelect.value === 'easy') {
+                levelSelect.value = 'medium';
+            } else if (level > 6 && levelSelect.value === 'medium') {
+                levelSelect.value = 'hard';
+            }
+            
+            startGame();
+        }
+        
+        // إضافة تأثير الاهتزاز
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% {transform: translateX(0);}
+                10%, 30%, 50%, 70%, 90% {transform: translateX(-5px);}
+                20%, 40%, 60%, 80% {transform: translateX(5px);}
+            }
+            
+            .remove-btn:hover {
+                color: #ffdddd !important;
+                transform: scale(1.2);
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // إضافة مستمعي الأحداث
+        startBtn.addEventListener('click', startGame);
+        checkBtn.addEventListener('click', checkAnswer);
+        hintBtn.addEventListener('click', showHint);
+        resetBtn.addEventListener('click', resetGame);
+        nextLevelBtn.addEventListener('click', nextLevel);
+        closeHintBtn.addEventListener('click', () => {
+            hintModal.style.display = 'none';
+        });
+        
+        // إغلاق النوافذ عند النقر خارجها
+        window.addEventListener('click', (e) => {
+            if (e.target === successModal) {
+                successModal.style.display = 'none';
+            }
+            if (e.target === hintModal) {
+                hintModal.style.display = 'none';
+            }
+        });
+        
+        // بدء اللعبة تلقائياً عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', () => {
+            startGame();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سجل المحقق الإحصائي</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cairo Font for Arabic -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght=400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0f4f8; /* Light gray background */
+        }
+        .data-point {
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+        .data-point:active {
+            cursor: grabbing;
+        }
+        .sorting-box {
+            min-height: 150px;
+            border: 3px dashed #9ca3af;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        .sorting-box.drag-over {
+            border-color: #3b82f6; /* Blue ring on hover */
+            background-color: #eff6ff; /* Light blue background */
+        }
+        /* Custom animation for the magnifying effect */
+        @keyframes highlight-and-fade {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); opacity: 1; }
+            50% { box-shadow: 0 0 20px 10px rgba(251, 191, 36, 0.5); opacity: 1; }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); opacity: 0; }
+        }
+        .microscope-highlight {
+            animation: highlight-and-fade 1.5s ease-out forwards;
+        }
+        /* Graph Bar styling */
+        .bar-container {
+            width: 100%;
+            height: 250px; /* Fixed height for the graph area */
+            display: flex;
+            align-items: flex-end; /* Bars start from the bottom */
+            padding-bottom: 0.5rem;
+            position: relative;
+        }
+        .graph-bar {
+            background-color: #a5b4fc; /* Initial light blue */
+            transition: height 0.3s ease-out, background-color 0.3s;
+            cursor: pointer;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            position: relative; /* Needed for inner elements */
+        }
+        .graph-bar.active {
+            background-color: #4f46e5; /* Deep blue when correct */
+        }
+        .y-axis-label {
+            position: absolute;
+            left: 0;
+            text-align: left;
+            width: 100%;
+            color: #4b5563;
+        }
+        .y-axis-label:after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 95%;
+            border-top: 1px dashed #d1d5db;
+        }
+        /* Hide radio button dot but keep the visual effect on label */
+        .radio-label input[type="radio"] {
+            display: none;
+        }
+        .radio-label {
+             transition: background-color 0.2s;
+        }
+        .radio-label.selected {
+             background-color: #d1fae5;
+             border-color: #10b981;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <script>
+        // --- Game State ---
+        let gameState = {
+            step: 1, // 1: Sorting, 2: Graphing, 3: Completed
+            rawData: [],
+            categories: {
+                dog: { name: "الكلاب 🐕", count: 0, color: "#3b82f6" },
+                cat: { name: "القطط 🐈", count: 0, color: "#10b981" },
+                fish: { name: "الأسماك 🐠", count: 0, color: "#f59e0b" }
+            },
+            sortedData: {}, // {dog: ['id1', 'id5', ...], ...}
+            graphState: {
+                dog: 0,
+                cat: 0,
+                fish: 0
+            },
+            quiz: {
+                questions: [],
+                currentQuestionIndex: 0, // 0-based index
+                isQuizCompleted: false,
+                lastAnswerCorrect: false
+            },
+            score: 0,
+            maxCount: 0 // Max count among all categories
+        };
+
+        const DATA_POINTS_TOTAL = 15;
+        const PET_TYPES = ['dog', 'cat', 'fish'];
+
+        /**
+         * Initializes the game by creating a random set of data points.
+         */
+        const generateData = () => {
+            const data = [];
+            for (let i = 0; i < DATA_POINTS_TOTAL; i++) {
+                const type = PET_TYPES[Math.floor(Math.random() * PET_TYPES.length)];
+                data.push({
+                    id: `item-${i}`,
+                    type: type,
+                    icon: getIcon(type)
+                });
+            }
+            gameState.rawData = data;
+            gameState.sortedData = { dog: [], cat: [], fish: [] };
+            gameState.categories.dog.count = 0;
+            gameState.categories.cat.count = 0;
+            gameState.categories.fish.count = 0;
+            gameState.graphState = { dog: 0, cat: 0, fish: 0 }; // Reset graph state
+            gameState.quiz = { questions: [], currentQuestionIndex: 0, isQuizCompleted: false, lastAnswerCorrect: false }; // Reset quiz state
+            gameState.step = 1;
+            gameState.score = 0;
+            updateUI();
+        };
+
+        /**
+         * Maps pet type to an emoji icon.
+         */
+        const getIcon = (type) => {
+            switch (type) {
+                case 'dog': return '🐕';
+                case 'cat': return '🐈';
+                case 'fish': return '🐠';
+                default: return '❓';
+            }
+        };
+        
+        /**
+         * Calculates the maximum count for scaling the bar graph.
+         */
+        const calculateMaxCount = () => {
+             gameState.maxCount = Math.max(...Object.values(gameState.categories).map(c => c.count));
+             // Ensure maxCount is at least 10 for better visual scaling if counts are low
+             gameState.maxCount = Math.max(10, Math.ceil(gameState.maxCount / 5) * 5); // Round up to the nearest multiple of 5
+        };
+
+        /**
+         * Generates dynamic quiz questions based on current data counts.
+         */
+        const generateQuizQuestions = () => {
+            const counts = PET_TYPES.map(key => ({ key, count: gameState.categories[key].count, name: gameState.categories[key].name.split(' ')[0] }));
+            counts.sort((a, b) => b.count - a.count); // Descending order: [Max, Mid, Min]
+            
+            const max = counts[0];
+            const min = counts[2];
+            
+            // Helper to get random non-correct options for numerical questions
+            const getNumericalOptions = (correctAnswer) => {
+                let options = [correctAnswer];
+                // Add a close wrong answer (e.g., +1 or -1)
+                options.push(correctAnswer + (Math.random() < 0.5 ? 1 : -1));
+                // Add a larger wrong answer (e.g., total count)
+                options.push(max.count + min.count);
+                
+                // Filter duplicates and remove non-positive numbers, then shuffle
+                options = [...new Set(options.filter(val => val > 0))];
+                while(options.length < 3) {
+                     options.push(Math.max(1, Math.floor(Math.random() * gameState.maxCount)));
+                     options = [...new Set(options)];
+                }
+
+                return options.slice(0, 3).sort(() => Math.random() - 0.5);
+            };
+
+
+            const dynamicQuizQuestions = [
+                {
+                    id: 1,
+                    type: 'categorical', // Single choice from pet types
+                    text: "بناءً على الرسم البياني، ما هي الحيوانات الأليفة **الأكثر** شعبية في الصف؟",
+                    options: PET_TYPES.map(key => ({ value: key, label: gameState.categories[key].name })),
+                    correctAnswer: max.key,
+                    score: 3,
+                },
+                {
+                    id: 2,
+                    type: 'categorical', // Single choice from pet types
+                    text: "أي من الحيوانات الأليفة هو **الأقل** شعبية بناءً على البيانات؟",
+                    options: PET_TYPES.map(key => ({ value: key, label: gameState.categories[key].name })),
+                    correctAnswer: min.key,
+                    score: 3,
+                },
+                {
+                    id: 3,
+                    type: 'numerical', // Numerical comparison
+                    text: `ما هو **الفرق** بين عدد ${max.name} وعدد ${min.name}؟ (كم يزيد ${max.name} عن ${min.name}؟)`,
+                    correctAnswer: max.count - min.count,
+                    options: getNumericalOptions(max.count - min.count),
+                    score: 4,
+                },
+            ];
+            
+            gameState.quiz.questions = dynamicQuizQuestions;
+        };
+
+
+        // --- Step 1: Sorting Logic (Drag & Drop) ---
+
+        window.dragStart = (e) => {
+            const itemId = e.target.dataset.itemId;
+            const itemType = e.target.dataset.itemType;
+            e.dataTransfer.setData('text/plain', JSON.stringify({ id: itemId, type: itemType }));
+            e.dataTransfer.effectAllowed = 'move';
+            e.target.classList.add('opacity-50', 'ring-4', 'ring-yellow-400');
+        };
+        
+        window.dragEnd = (e) => {
+            e.target.classList.remove('opacity-50', 'ring-4', 'ring-yellow-400');
+        };
+
+        window.dragOver = (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('drag-over');
+        };
+
+        window.dragLeave = (e) => {
+            e.currentTarget.classList.remove('drag-over');
+        };
+
+        window.dropItem = (e, targetType) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const itemId = data.id;
+            const itemType = data.type;
+
+            // Check if the item type matches the box type
+            if (itemType !== targetType) {
+                // Optional: Provide feedback for wrong drop
+                e.currentTarget.classList.add('ring-4', 'ring-red-400');
+                setTimeout(() => e.currentTarget.classList.remove('ring-4', 'ring-red-400'), 500);
+                return;
+            }
+
+            // Remove from rawData and add to sortedData
+            const itemIndex = gameState.rawData.findIndex(item => item.id === itemId);
+            if (itemIndex > -1) {
+                // Remove item from rawData
+                gameState.rawData.splice(itemIndex, 1);
+                
+                // Add to sorted data (only the ID is needed now)
+                gameState.sortedData[targetType].push(itemId);
+                gameState.categories[targetType].count = gameState.sortedData[targetType].length;
+
+                // Check for step completion
+                if (gameState.rawData.length === 0) {
+                    calculateMaxCount();
+                    generateQuizQuestions(); // Generate questions based on final counts
+                    // Award initial score for successful sorting
+                    gameState.score = 5; 
+                    // Set timeout to allow the final drop visual transition before changing the step
+                    setTimeout(() => {
+                        gameState.step = 2; // Move to Graphing step
+                        updateUI();
+                    }, 500); 
+                } else {
+                    updateUI(); // Quick UI update for tally trail
+                }
+            }
+        };
+        
+
+        // --- Step 2: Graphing Logic (Interactive Bar Building) ---
+        
+        /**
+         * Handles the click/interaction on a graph bar to build it.
+         * Tweak: Added penalty for clicking a completed bar.
+         */
+        window.clickBar = (type) => {
+            if (gameState.step !== 2) return;
+            
+            const targetCount = gameState.categories[type].count;
+            const currentHeight = gameState.graphState[type];
+            const feedbackEl = document.getElementById('temp-feedback');
+            
+            let shouldUpdateUI = false;
+
+            if (currentHeight < targetCount) {
+                // 1. Increment the bar height if it's not yet full
+                gameState.graphState[type] += 1;
+                shouldUpdateUI = true;
+                if(feedbackEl) feedbackEl.textContent = ''; // Clear feedback on successful click
+            } else if (currentHeight === targetCount) {
+                // 2. Bar is full. Clicking again incurs a penalty.
+                if (gameState.score > 0) {
+                     gameState.score = Math.max(0, gameState.score - 1); // Deduct 1 point, minimum 0
+                     if(feedbackEl) {
+                        feedbackEl.textContent = `❌ خطأ! تم خصم نقطة. العمود مكتمل (${targetCount}).`;
+                        feedbackEl.classList.remove('text-green-600', 'text-yellow-600');
+                        feedbackEl.classList.add('text-red-600');
+                        setTimeout(() => { feedbackEl.textContent = ''; feedbackEl.classList.remove('text-red-600'); }, 2000);
+                     }
+                } else {
+                     if(feedbackEl) {
+                        feedbackEl.textContent = `عمود ${gameState.categories[type].name.split(' ')[0]} مكتمل! لا يمكن رفعه أكثر.`;
+                        feedbackEl.classList.remove('text-red-600', 'text-yellow-600');
+                        feedbackEl.classList.add('text-green-600');
+                        setTimeout(() => { feedbackEl.textContent = ''; feedbackEl.classList.remove('text-green-600'); }, 1500);
+                     }
+                }
+                shouldUpdateUI = true; // Update UI to reflect score change
+            }
+            
+            // 3. Check for overall completion
+            const allBarsComplete = Object.keys(gameState.graphState).every(key => 
+                gameState.graphState[key] === gameState.categories[key].count
+            );
+
+            if (allBarsComplete && !gameState.quiz.isQuizCompleted) {
+                 // Award score for completion if it hasn't been done yet (or just update UI)
+                 shouldUpdateUI = true;
+            }
+            
+            // 4. Update UI if state changed or completion was reached
+            if (shouldUpdateUI) {
+                updateUI();
+            }
+        };
+
+
+        window.submitQuestion = (e) => {
+            e.preventDefault();
+            const currentQuestion = gameState.quiz.questions[gameState.quiz.currentQuestionIndex];
+            const feedbackEl = document.getElementById('question-feedback');
+            
+            let selectedValue = null;
+            if (currentQuestion.type === 'categorical') {
+                const selectedOption = document.querySelector('input[name="question-option"]:checked');
+                if (!selectedOption) {
+                    feedbackEl.textContent = 'الرجاء اختيار إجابة أولاً.';
+                    feedbackEl.classList.remove('text-green-600', 'text-red-600');
+                    feedbackEl.classList.add('text-yellow-600');
+                    return;
+                }
+                selectedValue = selectedOption.value;
+            } else if (currentQuestion.type === 'numerical') {
+                const selectedOption = document.querySelector('input[name="question-option"]:checked');
+                 if (!selectedOption) {
+                    feedbackEl.textContent = 'الرجاء اختيار إجابة أولاً.';
+                    feedbackEl.classList.remove('text-green-600', 'text-red-600');
+                    feedbackEl.classList.add('text-yellow-600');
+                    return;
+                }
+                // Convert numerical selection to number for strict comparison
+                selectedValue = parseInt(selectedOption.value, 10); 
+            }
+            
+            const isCorrect = selectedValue === currentQuestion.correctAnswer; 
+
+            if (isCorrect) {
+                feedbackEl.textContent = `🎉 إجابة صحيحة! (+${currentQuestion.score} نقاط)`;
+                feedbackEl.classList.remove('text-yellow-600', 'text-red-600');
+                feedbackEl.classList.add('text-green-600', 'font-bold');
+                gameState.score += currentQuestion.score;
+                gameState.quiz.lastAnswerCorrect = true;
+            } else {
+                feedbackEl.textContent = `❌ إجابة خاطئة. حاول مجدداً! (-1 نقطة)`;
+                feedbackEl.classList.remove('text-yellow-600', 'text-green-600');
+                feedbackEl.classList.add('text-red-600');
+                gameState.score = Math.max(0, gameState.score - 1); 
+                gameState.quiz.lastAnswerCorrect = false;
+            }
+            
+            // Hide the submit button temporarily and show the next button
+            document.getElementById('submit-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+
+            updateUI();
+        };
+        
+        window.nextQuestion = () => {
+            // Only proceed if the last answer was correct
+            if (!gameState.quiz.lastAnswerCorrect) {
+                 const feedbackEl = document.getElementById('question-feedback');
+                 feedbackEl.textContent = 'الرجاء الإجابة بشكل صحيح للمتابعة إلى السؤال التالي.';
+                 feedbackEl.classList.remove('text-green-600');
+                 feedbackEl.classList.add('text-red-600', 'font-bold');
+                 return;
+            }
+            
+            // Reset feedback and buttons
+            document.getElementById('question-feedback').textContent = '';
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('submit-btn').classList.remove('hidden');
+            
+            gameState.quiz.currentQuestionIndex++;
+            
+            if (gameState.quiz.currentQuestionIndex >= gameState.quiz.questions.length) {
+                gameState.quiz.isQuizCompleted = true;
+                gameState.step = 3; // Move to the final screen
+            }
+            
+            updateUI();
+        }
+
+        // --- UI Rendering ---
+
+        const renderStep1Sorting = () => {
+            const container = document.getElementById('game-container');
+            
+            const rawDataHtml = gameState.rawData.map(item => `
+                <div id="${item.id}" data-item-id="${item.id}" data-item-type="${item.type}" 
+                     draggable="true" ondragstart="dragStart(event)" ondragend="dragEnd(event)"
+                     class="data-point text-3xl p-2 bg-white rounded-full shadow-md hover:shadow-lg transition cursor-grab m-1">
+                    ${item.icon}
+                </div>
+            `).join('');
+
+            const tallyHtml = Object.keys(gameState.categories).map(key => {
+                const category = gameState.categories[key];
+                const tallyMarks = renderTallyMarks(category.count);
+                return `
+                    <div class="p-4 bg-white rounded-lg shadow-inner flex flex-col items-center border-t-4" style="border-color: ${category.color};">
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">${category.name}</h3>
+                        <div id="tally-box-${key}" class="text-2xl h-10 w-full text-center text-gray-800 font-mono">${category.count}</div>
+                        <div class="tally-marks text-gray-600 text-sm mt-2 flex flex-wrap justify-center min-h-[40px]">${tallyMarks}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            const sortingBoxesHtml = Object.keys(gameState.categories).map(key => {
+                const category = gameState.categories[key];
+                const categoryIcon = getIcon(key); // Icon of the category
+                return `
+                    <div id="box-${key}"
+                         class="sorting-box p-4 rounded-xl flex flex-wrap content-start gap-1"
+                         ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropItem(event, '${key}')">
+                        <div class="text-2xl font-bold p-2 w-full text-center text-gray-600 bg-gray-100 rounded-md" style="color: ${category.color};">
+                            ${category.name}
+                        </div>
+                        <!-- RENDERED ICONS: Simplified to use the category icon since all items in this box are of this type -->
+                        ${gameState.sortedData[key].map(id => `<span class="text-3xl">${categoryIcon}</span>`).join('')}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <h2 class="text-2xl font-extrabold text-gray-800 mb-4 flex items-center">
+                    <span class="text-3xl ml-2">🔍</span> المرحلة 1: فرز بيانات الحيوانات الأليفة 
+                    ${gameState.rawData.length > 0 ? `<span class="mr-auto text-base font-medium text-gray-500">متبقي: ${gameState.rawData.length}</span>` : ''}
+                </h2>
+                
+                <!-- Raw Data Area -->
+                <div class="p-6 bg-yellow-100 rounded-xl shadow-inner mb-6">
+                    <p class="text-lg font-semibold text-yellow-800 mb-3">
+                        اسحب كل أيقونة إلى صندوقها الصحيح أدناه. (تُمنح 5 نقاط عند الانتهاء)
+                    </p>
+                    <div id="raw-data-area" class="flex flex-wrap gap-2 justify-center min-h-[60px]">
+                        ${rawDataHtml}
+                    </div>
+                </div>
+
+                <!-- Sorting Boxes -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    ${sortingBoxesHtml}
+                </div>
+                
+                <!-- Tally Trail/Count Display -->
+                 <h2 class="text-2xl font-extrabold text-gray-800 mb-4 flex items-center border-t pt-4">
+                    <span class="text-3xl ml-2">🔢</span> سجل المحقق (العد التكراري)
+                </h2>
+                <div class="grid grid-cols-3 gap-6">
+                    ${tallyHtml}
+                </div>
+            `;
+        };
+        
+        const renderTallyMarks = (count) => {
+            let marks = [];
+            // Use the Arabic numeral 1 as a vertical stroke for tally marks
+            const tallyStroke = '<span class="inline-block w-4 h-6 text-2xl leading-none">١</span>'; 
+            // Custom group with the diagonal slash (CSS transformation is needed for correct visual in RTL context)
+            const tallyGroup = `<span class="inline-block p-1 bg-gray-200 rounded-sm shadow-inner mx-1 relative">
+                                    ${tallyStroke.repeat(4)} 
+                                    <span class="absolute top-1/2 left-0 right-0 h-[2px] bg-gray-800 opacity-70" style="transform: translateY(-50%) rotate(-45deg);"></span>
+                                </span>`;
+            
+            for (let i = 0; i < Math.floor(count / 5); i++) {
+                marks.push(tallyGroup);
+            }
+            // Add remaining strokes
+            for (let i = 0; i < count % 5; i++) {
+                 marks.push(tallyStroke);
+            }
+            
+            return marks.join('');
+        };
+
+        const renderStep2Graphing = () => {
+            const container = document.getElementById('game-container');
+            const maxCount = gameState.maxCount;
+            
+            // Generate Y-Axis labels (every 5 steps, max 10, 15, 20 etc)
+            const yAxisLabels = [];
+            for (let i = 5; i <= maxCount; i += 5) {
+                const bottomPercentage = (i / maxCount) * 100;
+                yAxisLabels.push(`
+                    <div class="y-axis-label text-xs" style="bottom: ${bottomPercentage}%; transform: translateY(50%);">
+                        ${i}
+                    </div>
+                `);
+            }
+
+            const graphHtml = Object.keys(gameState.categories).map(key => {
+                const category = gameState.categories[key];
+                const currentCount = gameState.graphState[key];
+                const targetCount = category.count;
+                const barHeightPercent = (currentCount / maxCount) * 100;
+                // Check if the bar is complete to apply the 'active' class
+                const isActive = currentCount === targetCount;
+
+                // إضافة فئة CSS تجبر العمود على الظهور بارتفاع 4 بكسل على الأقل عندما يكون الارتفاع 0%، مع تقليل الشفافية قليلاً.
+                const minHeightClass = currentCount === 0 ? 'min-h-[4px] opacity-30' : '';
+
+                return `
+                    <div class="flex flex-col items-center h-full mx-2" style="width: calc(100% / 3);">
+                        <!-- Bar -->
+                        <div id="bar-container-${key}" class="w-full relative h-full flex items-end justify-center pt-2">
+                           <div id="bar-${key}" onclick="clickBar('${key}')"
+                                class="graph-bar w-1/2 rounded-t-lg transition-all duration-300 ${isActive ? 'active' : ''} ${minHeightClass}"
+                                style="height: ${barHeightPercent}%; background-color: ${category.color};">
+                                <!-- Display current count inside the bar if it's high enough, or at the top -->
+                                ${currentCount > 0 ? `<span class="absolute top-0 transform -translate-y-full text-sm font-bold text-gray-800">${currentCount}</span>` : ''}
+                                <!-- Display Tally Goal inside the bar to guide the user (NEW: Added for challenge) -->
+                                <span class="absolute bottom-1 w-full text-center text-xs font-mono text-white opacity-80">الهدف: ${targetCount}</span>
+                           </div>
+                        </div>
+                        <!-- X-Axis Label -->
+                        <div class="mt-2 text-md font-semibold text-gray-700">${category.name}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            let questionArea = '';
+            // Only show the question if all bars are complete AND we are in step 2
+            const allBarsComplete = Object.keys(gameState.graphState).every(key => 
+                gameState.graphState[key] === gameState.categories[key].count
+            );
+            
+            if (gameState.step === 2 && allBarsComplete) {
+                
+                const currentQuestion = gameState.quiz.questions[gameState.quiz.currentQuestionIndex];
+                const totalQuestions = gameState.quiz.questions.length;
+                const isFinalQuestion = gameState.quiz.currentQuestionIndex === totalQuestions - 1;
+
+                if (currentQuestion) {
+                    const optionsHtml = currentQuestion.options.map((option, index) => {
+                         const value = option.value !== undefined ? option.value : option;
+                         const label = option.label !== undefined ? option.label : option;
+                         return `
+                            <label class="radio-label flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-100">
+                                <input type="radio" name="question-option" value="${value}" class="form-radio h-5 w-5 text-indigo-600 mr-3">
+                                <span class="text-lg font-medium text-gray-800">${label}</span>
+                            </label>
+                         `;
+                    }).join('');
+
+                    questionArea = `
+                        <div class="mt-8 p-6 bg-gray-50 rounded-xl shadow-lg">
+                            <h3 class="text-xl font-extrabold text-indigo-700 mb-4">
+                                اختبار التفسير (قارئ البيانات) - سؤال ${gameState.quiz.currentQuestionIndex + 1} من ${totalQuestions}
+                            </h3>
+                            <p class="text-lg mb-4 text-gray-700">${currentQuestion.text}</p>
+                            
+                            <form onsubmit="submitQuestion(event)" class="space-y-3">
+                                ${optionsHtml}
+                                
+                                <div class="flex gap-4 pt-4">
+                                    <button type="submit" id="submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition duration-150 shadow-md">
+                                        تأكيد الإجابة
+                                    </button>
+                                    <button type="button" id="next-btn" onclick="nextQuestion()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition duration-150 shadow-md ${gameState.quiz.lastAnswerCorrect ? '' : 'hidden'}">
+                                        ${isFinalQuestion ? 'إنهاء الاختبار' : 'السؤال التالي'}
+                                    </button>
+                                </div>
+
+                                <p id="question-feedback" class="mt-3 text-center h-6 font-medium"></p>
+                            </form>
+                        </div>
+                    `;
+                }
+            }
+
+            container.innerHTML = `
+                <h2 class="text-2xl font-extrabold text-gray-800 mb-4 flex items-center">
+                    <span class="text-3xl ml-2">📈</span> المرحلة 2: بناء الرسم البياني بالأعمدة (احذر من النقر الزائد!)
+                </h2>
+                <div class="p-6 bg-white rounded-xl shadow-lg border-t-4 border-green-500">
+                    <p class="text-lg font-semibold text-green-700 mb-4">
+                        انقر على كل عمود لرفعه **بدقة** إلى العدد الصحيح (الهدف يظهر أسفل العمود). النقر الزائد يخصم نقطة!
+                    </p>
+                    
+                    <div class="bar-container relative border-b-2 border-l-2 border-gray-300">
+                        <!-- Y-Axis Lines and Labels -->
+                        ${yAxisLabels.join('')}
+                        
+                        <!-- Graph Bars -->
+                        ${graphHtml}
+                    </div>
+                </div>
+                ${questionArea}
+            `;
+            
+             // Add event listener for radio button selection feedback
+             const radioLabels = container.querySelectorAll('.radio-label');
+             radioLabels.forEach(label => {
+                 const radio = label.querySelector('input[type="radio"]');
+                 if (radio) {
+                     radio.addEventListener('change', () => {
+                         radioLabels.forEach(lbl => lbl.classList.remove('selected'));
+                         if (radio.checked) {
+                             label.classList.add('selected');
+                         }
+                     });
+                 }
+             });
+        };
+        
+        const renderStep3Complete = () => {
+             const container = document.getElementById('game-container');
+             const finalScore = gameState.score;
+             
+             container.innerHTML = `
+                <div class="text-center p-10 bg-green-100 rounded-xl shadow-2xl">
+                    <span class="text-8xl">🎉</span>
+                    <h2 class="text-4xl font-black text-green-700 mt-4 mb-2">تهانينا! أكملت مهمة المحقق بنجاح!</h2>
+                    <p class="text-xl text-gray-700">لقد نجحت في فرز البيانات، وعدّها، وتمثيلها بيانياً، وتفسير النتيجة بثلاثة أسئلة اختبارية.</p>
+                    <p class="text-3xl font-extrabold text-indigo-600 mt-4">نقاطك النهائية: ${finalScore}</p>
+                    
+                    <button onclick="generateData()" class="mt-8 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg transition transform hover:scale-105">
+                        ابدأ تحدي بيانات جديد
+                    </button>
+                </div>
+             `;
+        };
+
+        /**
+         * Main UI update function based on the current step.
+         */
+        window.updateUI = () => {
+            // Check for the score element before trying to update it
+            const scoreEl = document.getElementById('score-value');
+            if (scoreEl) {
+                scoreEl.textContent = gameState.score;
+            }
+            
+            if (gameState.step === 1) {
+                renderStep1Sorting();
+            } else if (gameState.step === 2) {
+                renderStep2Graphing();
+            } else if (gameState.step === 3) {
+                 renderStep3Complete();
+            }
+        };
+
+        // --- Initialization ---
+        window.onload = generateData;
+    </script>
+
+    <div class="max-w-6xl mx-auto space-y-8">
+        <header class="text-center bg-white p-6 rounded-xl shadow-lg">
+            <h1 class="text-4xl font-black text-gray-900">
+                سجل المحقق الإحصائي
+            </h1>
+            <p class="mt-2 text-gray-600">تنظيم البيانات وتفسيرها خطوة بخطوة | <span class="font-bold text-indigo-500">النقاط: </span><span id="score-value" class="font-bold text-indigo-500">0</span></p>
+            <!-- NEW: Temporary feedback message for bar clicks -->
+            <div id="temp-feedback" class="h-6 text-center font-medium mt-1"></div>
+        </header>
+
+        <!-- Game Content Container -->
+        <div id="game-container" class="bg-white p-8 rounded-xl shadow-2xl min-h-[600px]">
+            <!-- Content will be injected here by JavaScript based on the current step -->
+        </div>
+
+    </div>
+
+</body>
+</html>

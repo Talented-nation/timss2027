@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الأعداد الفردية والزوجية - المستوى الأول</title>
+    <!-- تضمين Tailwind CSS لسهولة التصميم الجذاب -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- تضمين مكتبة Confetti (مكتبة خفيفة ومشهورة) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* إضافة خط Inter الجذاب */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7; /* خلفية فاتحة ومريحة */
+        }
+        .game-grid {
+            display: grid;
+            gap: 1px; /* فواصل صغيرة بين الخلايا */
+            margin: 20px auto;
+            border: 2px solid #3b82f6; /* إطار أزرق للوحة */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* ظل خفيف */
+            border-radius: 8px;
+            overflow: hidden; /* لإخفاء الزوايا الحادة للخلايا عند الحواف */
+            max-width: fit-content; /* يجعل الجدول يتوسط الشاشة بشكل أفضل */
+        }
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.1s, transform 0.1s;
+            font-weight: 600;
+            color: #333;
+            height: 40px; /* ارتفاع ثابت للخلية */
+            font-size: 1.125rem; /* text-lg */
+            /* مهم: تعيين اتجاه الأرقام لضمان عرضها بشكل صحيح */
+            direction: ltr; 
+        }
+        .cell:hover:not(.odd-clicked):not(.even-clicked) {
+            transform: scale(1.05); /* تأثير تكبير بسيط عند المرور */
+            opacity: 0.9;
+        }
+        /* الألوان المطلوبة */
+        .odd-clicked { /* الأعداد الفردية - اللون الأزرق */
+            background-color: #3b82f6; /* أزرق داكن */
+            color: white;
+            pointer-events: none; /* تعطيل النقر بعد التحديد الصحيح */
+        }
+        .even-clicked { /* الأعداد الزوجية - اللون الأحمر */
+            background-color: #ef4444; /* أحمر ساطع */
+            color: white;
+            pointer-events: none;
+        }
+
+        /* أنماط أزرار التحكم في الألوان */
+        .color-button {
+            border-radius: 9999px; /* rounded-full */
+            font-weight: 700; /* font-bold */
+            transition: transform 0.1s, box-shadow 0.1s;
+            padding: 10px 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-button.selected {
+            transform: scale(1.15); /* تكبير الزر المختار */
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8), 0 0 0 6px var(--color-ring);
+        }
+        .color-button.blue.selected {
+            --color-ring: #3b82f6; /* أزرق */
+        }
+        .color-button.red.selected {
+            --color-ring: #ef4444; /* أحمر */
+        }
+        
+        /* رسالة الخطأ أو التحقق تظهر بشكل أنيق */
+        .message-box {
+            background-color: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #b45309;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .win-message {
+            background-color: #d1fae5;
+            border: 2px solid #34d399;
+            color: #065f46;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col items-center">
+
+    <div id="game-container" class="w-full max-w-4xl bg-white p-6 rounded-xl shadow-2xl">
+        <h1 class="text-4xl font-bold text-center mb-2 text-indigo-700">لعبة تمييز الأعداد 🧠</h1>
+        <h2 id="level-title" class="text-xl text-center mb-6 text-gray-600">المستوى 1: أعداد محددة يدوياً (9x9)</h2>
+
+        <!-- لوحة التحكم في الألوان -->
+        <div id="color-control-panel" class="flex justify-center items-center space-x-4 space-x-reverse mb-8 p-4 bg-gray-100 rounded-lg shadow-inner">
+            <span class="text-lg font-semibold text-gray-700">اختر اللون للتلوين:</span>
+            
+            <!-- زر اللون الأزرق (للفردي) -->
+            <button id="blue-btn" data-color="odd"
+                    class="color-button blue bg-blue-500 hover:bg-blue-600 text-white shadow-lg transition duration-150">
+                أزرق (فردي)
+            </button>
+
+            <!-- زر اللون الأحمر (للزوجي) -->
+            <button id="red-btn" data-color="even"
+                    class="color-button red bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-150">
+                أحمر (زوجي)
+            </button>
+        </div>
+        <!-- نهاية لوحة التحكم -->
+
+        <div id="game-board-container" class="overflow-x-auto flex justify-center">
+            <div id="game-board" class="game-grid">
+                <!-- سيتم ملء الجدول ديناميكيًا هنا -->
+            </div>
+        </div>
+
+        <!-- منطقة الرسائل والتحقق -->
+        <div id="message-container" class="mt-8">
+            <div id="instruction-box" class="message-box bg-blue-100 border-blue-400 text-blue-800">
+                التعليمات: اختر اللون أولاً، ثم اضغط على الخلايا.
+            </div>
+            <div id="error-message" class="message-box bg-red-100 border-red-400 text-red-800 hidden mt-4"></div>
+        </div>
+
+        <!-- حقل التحقق من اسم الشكل -->
+        <div id="shape-check-area" class="mt-8 flex flex-col items-center space-y-4 hidden">
+            <p class="text-lg font-semibold text-gray-700">لقد أكملت التلوين! ما هو اسم الشكل الظاهر؟</p>
+            <input type="text" id="shape-guess" placeholder="اكتب اسم الشكل هنا..."
+                   class="p-3 border-2 border-gray-300 rounded-lg w-full max-w-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 text-center">
+            <button id="check-shape-btn"
+                    class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-xl shadow-md transition duration-150 transform hover:scale-105">
+                تحقق من الشكل
+            </button>
+        </div>
+        
+        <!-- رسالة الفوز النهائية -->
+        <div id="win-message-box" class="win-message hidden">
+            تهانينا! لقد أتقنت جميع المستويات بنجاح! 🎉
+        </div>
+    </div>
+
+    <!-- كود JavaScript للمنطق والتفاعلية -->
+    <script>
+        // ** دالة التحويل من الأرقام الغربية إلى الشرقية (العربية) **
+        function toEasternArabic(number) {
+            if (number === null || number === undefined) return '';
+            const numStr = String(number);
+            const easternArabic = [
+                '٠', '١', '٢', '٣', '٤', 
+                '٥', '٦', '٧', '٨', '٩'
+            ];
+            // تحويل كل رقم في السلسلة باستخدام الخريطة
+            return numStr.replace(/[0-9]/g, digit => easternArabic[digit]);
+        }
+
+        // **إعدادات المستويات المتعددة للعبة**
+        const gameLevels = [
+            { // المستوى 1
+                level: 1,
+                title: 'أعداد محددة يدوياً (9x9) - المستوى الأول',
+                cols: 9, // 9 أعمدة
+                rows: 9, // 9 صفوف
+                shape: 'قلب', // الشكل الصحيح للمستوى الأول
+                fixedNumbers: [
+                    [5, 5, 9, 5, 7, 9, 9, 7, 9], 
+                    [7, 7, 8, 9, 7, 5, 10, 1, 7], 
+                    [5, 8, 2, 4, 1, 0, 6, 4, 5], 
+                    [10, 2, 4, 8, 0, 6, 8, 2, 4], 
+                    [4, 2, 8, 6, 0, 8, 4, 2, 0], 
+                    [9, 6, 6, 2, 4, 2, 8, 10, 7], 
+                    [1, 5, 8, 6, 4, 2, 8, 9, 7], 
+                    [9, 7, 3, 2, 6, 4, 1, 1, 5], 
+                    [3, 5, 1, 7, 10, 9, 7, 3, 5] 
+                ]
+            },
+            { // المستوى 2
+                level: 2,
+                title: 'أعداد جديدة (9x9) - المستوى الثاني',
+                cols: 9, 
+                rows: 9, 
+                shape: 'بيت', // الشكل الصحيح للمستوى الثاني 
+                fixedNumbers: [
+                    [21, 23, 25, 9, 0, 11, 29, 15, 13], 
+                    [5, 3, 1, 2, 4, 6, 27, 33, 31], 
+                    [13, 29, 8, 22, 24, 30, 32, 5, 7], 
+                    [15, 16, 12, 10, 20, 6, 8, 2, 3], 
+                    [31, 11, 14, 18, 0, 10, 12, 21, 25], 
+                    [9, 33, 6, 24, 34, 2, 38, 3, 17], 
+                    [11, 19, 18, 20, 26, 2, 8, 11, 31], 
+                    [23, 7, 22, 32, 1, 14, 12, 7, 33], 
+                    [17, 1, 0, 6, 9, 30, 26, 33, 35] 
+                ]
+            },
+            { // المستوى 3 النهائي (الأرقام الجديدة)
+                level: 3,
+                title: 'أعداد أكبر (10x9) - المستوى الثالث النهائي',
+                cols: 9, 
+                rows: 10, 
+                shape: 'مظلة', // الشكل الصحيح المحدث
+                fixedNumbers: [
+                    [55, 71, 31, 99, 36, 37, 29, 15, 13], 
+                    [77, 91, 45, 76, 88, 98, 35, 53, 31], 
+                    [95, 42, 62, 26, 82, 28, 74, 46, 75], 
+                    [66, 40, 84, 58, 72, 94, 38, 64, 80], 
+                    [68, 82, 14, 18, 76, 10, 12, 44, 48], 
+                    [86, 54, 98, 32, 70, 20, 38, 30, 74], 
+                    [24, 19, 18, 27, 20, 23, 38, 11, 54], 
+                    [23, 17, 59, 33, 22, 95, 49, 57, 33], 
+                    [13, 11, 75, 63, 90, 53, 19, 33, 35], 
+                    [99, 85, 93, 98, 84, 23, 97, 95, 91]  
+                ]
+            }
+        ];
+
+        let currentLevelIndex = 0; // مؤشر المستوى الحالي (يبدأ بـ 0)
+        let currentLevelConfig = gameLevels[currentLevelIndex]; // إعدادات المستوى الحالي
+        let currentGrid = []; // مصفوفة لتخزين طبيعة كل خلية (odd/even)
+        let selectedColor = null; // المتغير لتخزين اللون المختار (odd أو even)
+
+        // جلب العناصر من الـ DOM
+        const gameBoard = document.getElementById('game-board');
+        const levelTitle = document.getElementById('level-title');
+        const instructionBox = document.getElementById('instruction-box');
+        const errorMessage = document.getElementById('error-message');
+        const shapeCheckArea = document.getElementById('shape-check-area');
+        const shapeGuessInput = document.getElementById('shape-guess');
+        const checkShapeBtn = document.getElementById('check-shape-btn');
+        const winMessageBox = document.getElementById('win-message-box');
+        
+        const blueBtn = document.getElementById('blue-btn'); // زر الأزرق (فردي)
+        const redBtn = document.getElementById('red-btn');   // زر الأحمر (زوجي)
+
+        // دالة توليد لوحة اللعب
+        function generateGameBoard(config) {
+            const { cols, rows, fixedNumbers, title } = config;
+            currentGrid = Array(rows).fill(0).map(() => Array(cols).fill(null)); 
+            
+            // تحديث عنوان المستوى
+            levelTitle.textContent = title;
+            
+            // إعادة تعيين الحالة المرئية والداخلية
+            selectedColor = null; 
+            gameBoard.innerHTML = '';
+            winMessageBox.classList.add('hidden');
+            shapeCheckArea.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            shapeGuessInput.value = ''; // مسح الإجابة السابقة
+            
+            // إعادة تفعيل الأزرار وتحديث حالتها
+            blueBtn.classList.remove('selected');
+            redBtn.classList.remove('selected');
+            blueBtn.disabled = false;
+            redBtn.disabled = false;
+            
+            instructionBox.classList.remove('bg-green-100', 'border-green-400', 'text-green-800');
+            instructionBox.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-800');
+            instructionBox.textContent = "التعليمات: اختر اللون أولاً، ثم اضغط على الخلايا.";
+
+            // إعداد تنسيق الشبكة (CSS Grid)
+            gameBoard.style.gridTemplateColumns = `repeat(${cols}, max-content)`; 
+            gameBoard.style.width = `auto`;
+            gameBoard.classList.remove('hidden'); // إظهار لوحة اللعب مجدداً
+
+            
+            // تعبئة الشبكة بالأرقام الثابتة
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    // التأكد من أن الصفوف والأعمدة ضمن نطاق fixedNumbers
+                    const number = fixedNumbers[r] && fixedNumbers[r][c] !== undefined ? fixedNumbers[r][c] : 0;
+                    
+                    // الصفر يعتبر زوجياً (0 % 2 === 0).
+                    const isOdd = number % 2 !== 0; 
+
+                    currentGrid[r][c] = {
+                        number: number,
+                        isOdd: isOdd, // true إذا كان العدد فردياً، false إذا كان زوجياً
+                        isClicked: false // لم يتم النقر عليها بعد
+                    };
+
+                    const cellElement = document.createElement('div');
+                    // لضمان تناسق الخلايا في جميع المستويات (خاصة 10x9)
+                    cellElement.className = 'cell bg-gray-200 hover:bg-gray-300 px-4 text-lg';
+                    
+                    // ** تطبيق التحويل إلى الأرقام العربية **
+                    cellElement.textContent = toEasternArabic(number); 
+
+                    cellElement.dataset.row = r;
+                    cellElement.dataset.col = c;
+
+                    cellElement.addEventListener('click', handleCellClick);
+                    gameBoard.appendChild(cellElement);
+                }
+            }
+        }
+
+        // دالة تحديث اللون المختار
+        function setSelectedColor(colorType) {
+            selectedColor = colorType;
+            // إزالة التحديد من جميع الأزرار
+            blueBtn.classList.remove('selected');
+            redBtn.classList.remove('selected');
+            
+            // إضافة التحديد للزر المختار
+            if (colorType === 'odd') {
+                blueBtn.classList.add('selected');
+            } else if (colorType === 'even') {
+                redBtn.classList.add('selected');
+            }
+            errorMessage.classList.add('hidden');
+            instructionBox.textContent = `اخترت اللون ${colorType === 'odd' ? 'الأزرق (فردي)' : 'الأحمر (زوجي)'}. انقر على الخلايا المناسبة!`;
+        }
+        
+        // ربط الأزرار بدالة التحديد
+        blueBtn.addEventListener('click', () => setSelectedColor('odd'));
+        redBtn.addEventListener('click', () => setSelectedColor('even'));
+
+
+        // دالة التعامل مع نقر الخلية
+        function handleCellClick(event) {
+            const cellElement = event.currentTarget;
+            const r = parseInt(cellElement.dataset.row);
+            const c = parseInt(cellElement.dataset.col);
+            const cellData = currentGrid[r][c];
+
+            // منع النقر على الخلايا الملونة مسبقاً
+            if (cellData.isClicked) return;
+            
+            errorMessage.classList.add('hidden'); 
+
+            if (!selectedColor) {
+                showError("الرجاء اختيار لون (أزرق أو أحمر) أولاً من لوحة التحكم.");
+                return;
+            }
+
+            // التحقق من صحة اختيار الطالب
+            const isOddNumber = cellData.isOdd; // هل العدد فردي؟ 
+            // هل اختيار اللون (selectedColor) يطابق طبيعة العدد (odd/even)؟
+            const isCorrectSelection = (isOddNumber && selectedColor === 'odd') || (!isOddNumber && selectedColor === 'even');
+
+            if (isCorrectSelection) {
+                // تلوين الخلية باللون الصحيح
+                cellElement.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                if (isOddNumber) {
+                    cellElement.classList.add('odd-clicked');
+                } else {
+                    cellElement.classList.add('even-clicked');
+                }
+                
+                // تسجيل النقر والتحقق من الاكتمال
+                cellData.isClicked = true;
+                checkCompletion();
+
+            } else {
+                // خطأ: اختيار اللون لا يتطابق مع طبيعة العدد
+                const correctType = isOddNumber ? 'فردي (أزرق)' : 'زوجي (أحمر)';
+                showError(`خطأ! هذا العدد هو ${correctType}. اختر اللون المناسب لهذا النوع.`);
+            }
+        }
+
+        // دالة للتحقق من انتهاء التلوين (الآن تعتمد على تلوين كل الخلايا)
+        function checkCompletion() {
+            const allCells = currentGrid.flat();
+            const totalCells = allCells.length;
+            // التحقق من أن جميع الخلايا تم النقر عليها
+            const clickedCells = allCells.filter(c => c.isClicked).length;
+
+            if (clickedCells === totalCells) {
+                // تم تلوين كل الخلايا بنجاح
+                // يمكنك الآن تحليل الشكل الظاهر
+                showSuccess("ممتاز! لقد قمت بتلوين جميع الأعداد. الآن اكتب اسم الشكل.");
+                checkShapeBtn.disabled = false;
+                shapeCheckArea.classList.remove('hidden');
+                
+                // تعطيل النقر على جميع الخلايا وأزرار الألوان بعد الانتهاء
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.style.pointerEvents = 'none';
+                });
+                blueBtn.disabled = true;
+                redBtn.disabled = true;
+            }
+        }
+
+        // دالة لعرض رسالة خطأ
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // دالة لعرض رسالة نجاح (في التعليمات)
+        function showSuccess(message) {
+            instructionBox.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-800', 'bg-red-100', 'bg-green-100');
+            instructionBox.classList.add('bg-green-100', 'border-green-400', 'text-green-800');
+            instructionBox.textContent = message;
+        }
+
+        // دالة تحميل المستوى التالي
+        function loadNextLevel() {
+            currentLevelIndex++;
+            if (currentLevelIndex < gameLevels.length) {
+                currentLevelConfig = gameLevels[currentLevelIndex];
+                // إظهار رسالة النجاح والتهيئة للمستوى التالي
+                showSuccess(`تهانينا! الإجابة صحيحة. جار التحميل للمستوى ${toEasternArabic(currentLevelConfig.level)}...`);
+                setTimeout(() => {
+                    generateGameBoard(currentLevelConfig);
+                }, 1500); // تأخير بسيط قبل تحميل المستوى
+            } else {
+                // لا يوجد مستويات إضافية، إنهاء اللعبة
+                endGame();
+            }
+        }
+        
+        // دالة إطلاق القصاصات الملونة
+        function launchConfetti() {
+            // التحقق من توفر الدالة confetti
+            if (typeof confetti === 'function') {
+                const defaults = {
+                    spread: 360,
+                    ticks: 50,
+                    gravity: 0.5,
+                    decay: 0.94,
+                    startVelocity: 30,
+                    colors: ['#3b82f6', '#ef4444', '#34d399', '#f97316', '#a855f7'] // ألوان متناسقة
+                };
+
+                // إطلاق قصاصات من اليسار
+                confetti({
+                    ...defaults,
+                    particleCount: 80,
+                    origin: { x: 0, y: 0.7 }
+                });
+
+                // إطلاق قصاصات من اليمين
+                confetti({
+                    ...defaults,
+                    particleCount: 80,
+                    origin: { x: 1, y: 0.7 }
+                });
+
+                // إطلاق قصاصات من المنتصف للأعلى
+                setTimeout(() => {
+                    confetti({
+                        ...defaults,
+                        particleCount: 100,
+                        startVelocity: 45,
+                        origin: { x: 0.5, y: 0.3 }
+                    });
+                }, 250);
+            }
+        }
+        
+        // دالة إنهاء اللعبة (بعد إكمال جميع المستويات)
+        function endGame() {
+            // إخفاء العناصر الرئيسية
+            document.getElementById('color-control-panel').classList.add('hidden');
+            levelTitle.classList.add('hidden');
+            gameBoard.classList.add('hidden');
+            instructionBox.classList.add('hidden');
+            shapeCheckArea.classList.add('hidden');
+            
+            // إظهار رسالة الفوز النهائية
+            winMessageBox.classList.remove('hidden');
+            
+            // إطلاق القصاصات الملونة للاحتفال
+            launchConfetti();
+        }
+
+        // مستمع لزر التحقق من اسم الشكل
+        checkShapeBtn.addEventListener('click', () => {
+            const correctShape = currentLevelConfig.shape;
+            const userGuess = shapeGuessInput.value.trim();
+
+            if (userGuess.toLowerCase() === correctShape.toLowerCase()) { // مقارنة غير حساسة لحالة الأحرف
+                // الإجابة صحيحة، محاولة تحميل المستوى التالي
+                loadNextLevel();
+            } else {
+                // الإجابة خاطئة
+                showError(`الإجابة غير صحيحة. حاول مجدداً. تلميح: الشكل الحالي هو ${currentLevelConfig.shape}`);
+            }
+        });
+
+        // بدء اللعبة بتحميل المستوى الأول
+        document.addEventListener('DOMContentLoaded', () => {
+            generateGameBoard(currentLevelConfig);
+        });
+
+    </script>
+</body>
+</html>
