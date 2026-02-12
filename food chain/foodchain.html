@@ -6,11 +6,10 @@
     <title>لعبة السلسلة الغذائية - سحب وإفلات</title>
     <!-- تضمين Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- تم إزالة تضمين Tone.js -->
     
     <!-- تضمين الخط (Tajawal) للغة العربية -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
         body {
             font-family: 'Tajawal', sans-serif;
             background-color: #f0fdf4;
@@ -32,42 +31,45 @@
         }
         .draggable:active {
             transform: scale(1.05);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 4px 6px 0.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
-        /* لتنسيق الصورة داخل العنصر القابل للسحب */
         .item-image {
             width: 80px;
             height: 80px;
             object-fit: cover;
             border-radius: 8px;
         }
-
-        /* تحسين التنسيق عند الإفلات داخل drop-zone */
         .drop-zone > .draggable {
-            height: auto !important; /* إلغاء ارتفاع العنصر الأصلي */
+            height: auto !important; 
         }
         .drop-zone svg {
             transition: opacity 0.3s;
         }
-        /* دعم Grid Columns حتى 5 */
         .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 
         @media (min-width: 768px) {
-            .md\\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            .md\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        }
+        
+        .pulse-animation {
+            animation: pulse-red 1s infinite alternate;
+        }
+        @keyframes pulse-red {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(1.1); opacity: 0.8; }
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col p-4 md:p-8">
 
-    <!-- العنوان والتعليمات وزر التحكم بالصوت -->
-    <header class="text-center mb-8 relative">
+    <header class="text-center mb-6 relative">
         <h1 class="text-4xl font-extrabold text-green-700 mb-2">لعبة السلسلة الغذائية</h1>
+        
         <!-- زر التحكم بالصوت -->
         <button id="sound-toggle-btn" onclick="toggleSound()"
                 class="absolute top-0 right-0 p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition duration-150 shadow-md">
-            <!-- أيقونة مكبر الصوت (Sound On - Lucide Icon SVG) -->
             <svg id="sound-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-2">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
@@ -75,101 +77,104 @@
             </svg>
         </button>
 
-        <!-- سيتم تحديث هذا النص بواسطة JavaScript -->
-        <p id="level-description" class="text-xl text-green-600 font-semibold mb-4">...</p> 
-        <div id="message" class="text-lg p-3 rounded-lg font-medium hidden"></div>
+        <p id="level-description" class="text-xl text-green-600 font-semibold mb-2">...</p> 
+        
+        <!-- المحاولات (Lives) وشريط الوقت (Time Bar) -->
+        <div class="flex flex-col items-center justify-center mt-4">
+            <!-- قسم المحاولات -->
+            <div class="flex items-center gap-1 mb-3" id="lives-container">
+                <!-- سيتم توليد القلوب هنا عبر JavaScript -->
+            </div>
+
+            <!-- شريط الوقت -->
+            <div class="w-full max-w-lg bg-gray-200 rounded-full h-4 relative shadow-inner">
+                <div id="time-bar" class="bg-green-500 h-4 rounded-full transition-all duration-1000 ease-linear" style="width: 100%"></div>
+                <div id="time-text-container" class="absolute -top-6 w-full flex justify-center">
+                    <span id="time-text" class="text-sm font-bold text-gray-700 bg-white px-2 rounded-md shadow-sm border border-gray-200">00:30</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="message" class="text-lg p-3 rounded-lg font-medium hidden mt-4"></div>
     </header>
 
     <!-- اختيار المستوى -->
-    <section class="mb-8 flex justify-center space-x-4">
+    <section class="mb-8 flex justify-center space-x-4 space-x-reverse">
         <button id="level1-btn" onclick="loadLevel('level1')" 
                 class="bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-md">
             المستوى 1 (3 حلقات)
         </button>
         <button id="level2-btn" onclick="loadLevel('level2')" 
                 class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-md">
-            المستوى 2 (4 حلقات)
+            المستوى 2 (4 حلقات) 🔒
         </button>
         <button id="level3-btn" onclick="loadLevel('level3')" 
                 class="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-md">
-            المستوى 3 (5 حلقات)
+            المستوى 3 (5 حلقات) 🔒
         </button>
     </section>
 
-    <!-- منطقة الكائنات المسحوبة (Draggable Items) -->
-    <section class="mb-8 p-4 bg-green-100 rounded-xl shadow-inner max-w-7xl mx-auto w-full">
-        <h2 class="text-xl font-bold text-green-700 mb-4 text-center">اسحب الكائنات إلى السلسلة (مجموعة ثابتة من 13 كائن)</h2>
+    <!-- منطقة الكائنات المسحوبة -->
+    <section class="mb-8 p-4 bg-green-100 rounded-xl shadow-inner max-w-7xl mx-auto w-full relative">
+        <h2 class="text-xl font-bold text-green-700 mb-4 text-center">اسحب الكائنات إلى السلسلة</h2>
         <div id="draggable-items-container" class="flex flex-wrap justify-center gap-4">
             
-            <!-- المنتجات (Producers) -->
-            <div id="grass" data-item="grass" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-green-500 rounded-lg w-28 h-32 text-center">
+            <!-- المنتجات -->
+            <div id="grass" data-item="grass" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-green-500 rounded-lg w-28 h-32 text-center">
                 <img src="grass.svg" alt="عشب" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-green-800">عشب</span>
             </div>
-            <div id="algae" data-item="algae" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-cyan-500 rounded-lg w-28 h-32 text-center">
+            <div id="algae" data-item="algae" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-cyan-500 rounded-lg w-28 h-32 text-center">
                 <img src="algae.svg" alt="طحالب" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-cyan-800">طحالب</span>
             </div>
 
-            <!-- مستهلك أول (Primary Consumers) -->
-            <div id="grasshopper" data-item="grasshopper" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-yellow-600 rounded-lg w-28 h-32 text-center">
+            <!-- مستهلك أول -->
+            <div id="grasshopper" data-item="grasshopper" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-yellow-600 rounded-lg w-28 h-32 text-center">
                 <img src="grasshopper.svg" alt="جرادة" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-yellow-900">جرادة</span>
             </div>
-            <div id="worm" data-item="worm" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-amber-600 rounded-lg w-28 h-32 text-center">
+            <div id="worm" data-item="worm" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-amber-600 rounded-lg w-28 h-32 text-center">
                 <img src="worm.svg" alt="دودة" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-amber-900">دودة</span>
             </div>
-            <div id="rabbit" data-item="rabbit" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-gray-400 rounded-lg w-28 h-32 text-center">
+            <div id="rabbit" data-item="rabbit" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-gray-400 rounded-lg w-28 h-32 text-center">
                 <img src="rabbit.svg" alt="أرنب" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-gray-700">أرنب</span>
             </div>
-            <div id="mouse" data-item="mouse" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-stone-400 rounded-lg w-28 h-32 text-center">
+            <div id="mouse" data-item="mouse" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-stone-400 rounded-lg w-28 h-32 text-center">
                 <img src="mouse.svg" alt="فأر" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-stone-700">فأر</span>
             </div>
             
-            <!-- مستهلك ثانٍ (Secondary Consumers) -->
-            <div id="small_fish" data-item="small_fish" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-blue-500 rounded-lg w-28 h-32 text-center">
+            <!-- مستهلك ثانٍ -->
+            <div id="small_fish" data-item="small_fish" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-blue-500 rounded-lg w-28 h-32 text-center">
                 <img src="fish.svg" alt="سمكة صغيرة" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-blue-800">سمكة صغيرة</span>
             </div>
-            <div id="frog" data-item="frog" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-emerald-500 rounded-lg w-28 h-32 text-center">
+            <div id="frog" data-item="frog" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-emerald-500 rounded-lg w-28 h-32 text-center">
                 <img src="frog.svg" alt="ضفدع" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-emerald-800">ضفدع</span>
             </div>
-            <div id="bird" data-item="bird" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-sky-500 rounded-lg w-28 h-32 text-center">
+            <div id="bird" data-item="bird" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-sky-500 rounded-lg w-28 h-32 text-center">
                 <img src="bird.svg" alt="عصفور" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-sky-800">عصفور</span>
             </div>
 
-            <!-- مستهلك ثالث ورابع (Tertiary & Quaternary Consumers) -->
-            <div id="snake" data-item="snake" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-red-600 rounded-lg w-28 h-32 text-center">
+            <!-- مستهلك ثالث ورابع -->
+            <div id="snake" data-item="snake" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-red-600 rounded-lg w-28 h-32 text-center">
                 <img src="snake.svg" alt="ثعبان" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-red-900">ثعبان</span>
             </div>
-            <div id="hawk" data-item="hawk" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-orange-600 rounded-lg w-28 h-32 text-center">
+            <div id="hawk" data-item="hawk" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-orange-600 rounded-lg w-28 h-32 text-center">
                 <img src="hawk.svg" alt="صقر" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-orange-900">صقر</span>
             </div>
-            <div id="crocodile" data-item="crocodile" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-green-800 rounded-lg w-28 h-32 text-center">
+            <div id="crocodile" data-item="crocodile" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-green-800 rounded-lg w-28 h-32 text-center">
                 <img src="crocodile.svg" alt="تمساح" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-green-900">تمساح</span>
             </div>
-            <div id="shark" data-item="shark" draggable="true" 
-                 class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-indigo-800 rounded-lg w-28 h-32 text-center">
+            <div id="shark" data-item="shark" draggable="true" class="draggable flex flex-col items-center p-3 bg-white border-b-4 border-indigo-800 rounded-lg w-28 h-32 text-center">
                 <img src="shark.svg" alt="سمك قرش" class="item-image mb-1" />
                 <span class="mt-2 text-sm font-semibold text-indigo-900">سمك قرش</span>
             </div>
@@ -177,7 +182,7 @@
         </div>
     </section>
 
-    <!-- منطقة الإفلات (Drop Zones) - سيتم ملؤها ديناميكياً -->
+    <!-- منطقة الإفلات (Drop Zones) -->
     <main class="flex-grow flex items-center justify-center">
         <div id="drop-area" class="grid w-full max-w-7xl p-6 bg-white rounded-xl shadow-2xl gap-4 md:gap-8">
             <!-- سيتم إنشاء مناطق الإفلات هنا بواسطة JavaScript -->
@@ -189,244 +194,362 @@
         <button onclick="checkFoodChain()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 shadow-lg hover:shadow-xl text-lg">
             تحقق من الإجابة
         </button>
-        <button onclick="resetGame()" class="ml-4 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-full transition duration-300 shadow-lg text-lg">
-            إعادة تعيين
+        <button onclick="clearBoard()" class="ml-4 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-full transition duration-300 shadow-lg text-lg">
+            إفراغ السلسلة
         </button>
     </section>
 
+    <!-- شاشة الفوز والخسارة -->
+    <div id="result-screen" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex-col items-center justify-center backdrop-blur-sm transition-opacity duration-500">
+        <div class="bg-white p-10 rounded-3xl text-center max-w-sm w-full mx-4 shadow-2xl transform transition-all border-4 border-white relative">
+            <div id="result-icon" class="text-7xl mb-6 drop-shadow-md"></div>
+            <h2 id="result-title" class="text-3xl font-extrabold mb-4 text-gray-800"></h2>
+            <p id="result-message" class="text-lg text-gray-600 font-medium"></p>
+            
+            <!-- نافذة الجائزة عند الفوز -->
+            <div id="reward-container" class="hidden mt-6">
+                <p class="text-sm text-gray-500 mb-4">جاري نقلك لاستلام الجائزة...</p>
+                <div class="flex justify-center mb-4">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+                <a href="https://talented-nation.github.io/database/sreward2.html" class="inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-full transition-all shadow-md w-full">
+                    <span>الذهاب للجائزة الآن</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // دالة مساعدة للحصول على مرجع للعنصر المسحوب
+        // المتغيرات العالمية للعبة
         let draggedItem = null;
-        let CURRENT_LEVEL = 'level1'; // المستوى الافتراضي
+        let CURRENT_LEVEL = 'level1';
+        let maxUnlockedLevel = 1; // 1 = level1, 2 = level2, 3 = level3
+        let lives = 3;
         
+        // متغيرات الوقت
+        let timerInterval;
+        let timeLimit = 30; // الثواني الافتراضية
+        let timeLeft = 30;
+
         const messageBox = document.getElementById('message');
         const draggableArea = document.getElementById('draggable-items-container'); 
         const dropArea = document.getElementById('drop-area');
         
-        // ******************************************************************
-        // متغيرات للتحكم بالصوت وعناصر HTML Audio
-        // ******************************************************************
+        // متغيرات الصوت
         let isSoundMuted = false;
         let successAudio = null;
         let failureAudio = null;
         let dragAudio = null;
         
-        // ******************************************************************
-        // 1. إعداد الأصوات (استخدام HTML Audio Data URLs)
-        // ******************************************************************
-
-        // دالة لإنشاء ملف صوتي (WAV) بسيط كـ Data URL
+        // ------------------------------------------------------------------
+        // إعداد الأصوات
+        // ------------------------------------------------------------------
         function createWavDataURL(frequency, durationSec, volume = 0.5) {
             const sampleRate = 44100;
             const numSamples = sampleRate * durationSec;
-            const buffer = new ArrayBuffer(44 + numSamples * 2); // 44 بايت للرأس + بايتان لكل عينة
+            const buffer = new ArrayBuffer(44 + numSamples * 2);
             const view = new DataView(buffer);
             
-            // دالة لكتابة البيانات الثنائية
             const writeString = (view, offset, string) => {
                 for (let i = 0; i < string.length; i++) {
                     view.setUint8(offset + i, string.charCodeAt(i));
                 }
             };
 
-            // رأس WAV
-            writeString(view, 0, 'RIFF'); // ChunkID
-            view.setUint32(4, 36 + numSamples * 2, true); // ChunkSize
-            writeString(view, 8, 'WAVE'); // Format
-            writeString(view, 12, 'fmt '); // Subchunk1ID
-            view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
-            view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
-            view.setUint16(22, 1, true); // NumChannels (Mono)
-            view.setUint32(24, sampleRate, true); // SampleRate
-            view.setUint32(28, sampleRate * 2, true); // ByteRate
-            view.setUint16(32, 2, true); // BlockAlign
-            view.setUint16(34, 16, true); // BitsPerSample (16-bit)
-            writeString(view, 36, 'data'); // Subchunk2ID
-            view.setUint32(40, numSamples * 2, true); // Subchunk2Size
+            writeString(view, 0, 'RIFF'); 
+            view.setUint32(4, 36 + numSamples * 2, true); 
+            writeString(view, 8, 'WAVE'); 
+            writeString(view, 12, 'fmt '); 
+            view.setUint32(16, 16, true); 
+            view.setUint16(20, 1, true); 
+            view.setUint16(22, 1, true); 
+            view.setUint32(24, sampleRate, true); 
+            view.setUint32(28, sampleRate * 2, true); 
+            view.setUint16(32, 2, true); 
+            view.setUint16(34, 16, true); 
+            writeString(view, 36, 'data'); 
+            view.setUint32(40, numSamples * 2, true); 
 
-            // بيانات الصوت (موجة جيبية)
             let offset = 44;
             const maxAmplitude = 32767 * volume;
             for (let i = 0; i < numSamples; i++) {
                 const time = i / sampleRate;
-                // توليد موجة جيبية بسيطة
                 const sample = maxAmplitude * Math.sin(2 * Math.PI * frequency * time);
-                view.setInt16(offset, sample, true); // كتابة العينة 16-بت
+                view.setInt16(offset, sample, true); 
                 offset += 2;
             }
 
-            // تحويل البفر إلى base64 Data URL
             const blob = new Blob([view], { type: 'audio/wav' });
             return URL.createObjectURL(blob);
         }
 
-        // دالة لتهيئة الأصوات (يتم استدعاؤها مرة واحدة عند التحميل)
         function initAudio() {
-            // صوت نجاح (نغمة جيدة)
-            successAudio = new Audio(createWavDataURL(587.33, 0.15, 0.7)); // D5
+            successAudio = new Audio(createWavDataURL(587.33, 0.15, 0.7)); 
             successAudio.volume = isSoundMuted ? 0 : 1;
             
-            // صوت فشل (نغمة منخفضة ومزعجة قليلاً)
-            failureAudio = new Audio(createWavDataURL(110.0, 0.3, 0.7)); // A2
+            failureAudio = new Audio(createWavDataURL(110.0, 0.3, 0.7)); 
             failureAudio.volume = isSoundMuted ? 0 : 1;
             
-            // صوت سحب (نغمة بسيطة)
-            dragAudio = new Audio(createWavDataURL(440.0, 0.05, 0.5)); // A4
+            dragAudio = new Audio(createWavDataURL(440.0, 0.05, 0.5)); 
             dragAudio.volume = isSoundMuted ? 0 : 1;
         }
 
-
-        // دالة التحكم في كتم/تشغيل الصوت
         function toggleSound() {
             isSoundMuted = !isSoundMuted;
-            
-            // تحديث الأيقونة بناءً على حالة الكتم
             const iconContainer = document.getElementById('sound-toggle-btn');
             
-            // الأيقونات الجديدة
             const iconOn = `<svg id="sound-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
             const iconOff = `<svg id="sound-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-x"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>`;
 
             iconContainer.innerHTML = isSoundMuted ? iconOff : iconOn;
 
-            // التحكم في مستوى الصوت مباشرةً
             if (successAudio) successAudio.volume = isSoundMuted ? 0 : 1;
             if (failureAudio) failureAudio.volume = isSoundMuted ? 0 : 1;
             if (dragAudio) dragAudio.volume = isSoundMuted ? 0 : 1;
-
-            if (!isSoundMuted) {
-                showMessage('تم تفعيل الصوت بنجاح!', 'bg-green-100 border-green-500 text-green-700');
-            } else {
-                showMessage('تم كتم الصوت.', 'bg-gray-200 border-gray-400 text-gray-700');
-            }
         }
 
-
-        function playSuccessSound() {
-            if (successAudio && !isSoundMuted) {
-                // لإعادة تشغيل الصوت حتى لو كان قيد التشغيل بالفعل
+        function playSuccessSound() { 
+            if (successAudio && !isSoundMuted) { 
                 successAudio.currentTime = 0; 
-                successAudio.play();
-            }
+                const playPromise = successAudio.play(); 
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => { console.warn("Audio playback prevented:", error); });
+                }
+            } 
+        }
+        function playFailureSound() { 
+            if (failureAudio && !isSoundMuted) { 
+                failureAudio.currentTime = 0; 
+                const playPromise = failureAudio.play(); 
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => { console.warn("Audio playback prevented:", error); });
+                }
+            } 
+        }
+        function playDragSound() { 
+            if (dragAudio && !isSoundMuted) { 
+                dragAudio.currentTime = 0; 
+                const playPromise = dragAudio.play(); 
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => { console.warn("Audio playback prevented:", error); });
+                }
+            } 
         }
 
-        function playFailureSound() {
-            if (failureAudio && !isSoundMuted) {
-                failureAudio.currentTime = 0;
-                failureAudio.play();
-            }
-        }
-
-        function playDragSound() {
-            if (dragAudio && !isSoundMuted) {
-                dragAudio.currentTime = 0;
-                dragAudio.play();
-            }
-        }
-
-
-        // ******************************************************************
-        // 2. تعريف بيانات اللعبة (Food Chains Data) - لم تتغير
-        // ******************************************************************
-
-        // 2. تعريف سلاسل الغذاء للمستويات المختلفة (3، 4، 5 حلقات)
+        // ------------------------------------------------------------------
+        // بيانات اللعبة
+        // ------------------------------------------------------------------
         const CORRECT_CHAINS = {
-            // Level 1: An array of valid 3-link chains
             'level1': [
-                ['algae', 'small_fish', 'crocodile'], // طحالب ← سمكة صغيرة ← تمساح
-                ['grass', 'grasshopper', 'bird'],     // عشب ← جرادة ← عصفور
-                ['grass', 'mouse', 'snake'],          // عشب ← فأر ← ثعبان
-                ['grass', 'mouse', 'hawk'],           // عشب ← فأر ← صقر
-                ['grass', 'worm', 'bird'],            // عشب ← دودة ← عصفور
-                ['grass', 'grasshopper', 'frog'],     // عشب ← جرادة ← ضفدع
-                ['grass', 'rabbit', 'hawk'],          // عشب ← أرنب ← صقر
-                ['grass', 'rabbit', 'snake'],         // عشب ← أرنب ← ثعبان
-                ['algae', 'small_fish', 'shark']      // طحالب ← سمكة صغيرة ← سمك قرش
+                ['algae', 'small_fish', 'crocodile'], 
+                ['grass', 'grasshopper', 'bird'],     
+                ['grass', 'mouse', 'snake'],          
+                ['grass', 'mouse', 'hawk'],           
+                ['grass', 'worm', 'bird'],            
+                ['grass', 'grasshopper', 'frog'],     
+                ['grass', 'rabbit', 'hawk'],          
+                ['grass', 'rabbit', 'snake'],         
+                ['algae', 'small_fish', 'shark']      
             ], 
-            
-            // Level 2: An array of valid 4-link chains
             'level2': [
-                ['grass', 'grasshopper', 'frog', 'snake'],      // عشب ← جرادة ← ضفدع ← ثعبان
-                ['grass', 'grasshopper', 'frog', 'crocodile'],  // عشب ← جرادة ← ضفدع ← تمساح
-                ['grass', 'mouse', 'snake', 'hawk'],            // عشب ← فأر ← ثعبان ← صقر
-                ['grass', 'rabbit', 'snake', 'hawk'],           // عشب ← أرنب ← ثعبان ← صقر
-                ['grass', 'worm', 'bird', 'hawk'],              // عشب ← دودة ← عصفور ← صقر
-                ['algae', 'small_fish', 'frog', 'crocodile'],   // طحالب ← سمكة صغيرة ← ضفدع ← تمساح
-                ['grass', 'grasshopper', 'bird', 'hawk'],       // عشب ← جرادة ← عصفور ← صقر
-                ['grass', 'grasshopper', 'bird', 'snake'],      // عشب ← جرادة ← عصفور ← ثعبان
-                ['grass', 'worm', 'bird', 'snake']              // عشب ← دودة ← عصفور ← ثعبان
+                ['grass', 'grasshopper', 'frog', 'snake'],      
+                ['grass', 'grasshopper', 'frog', 'crocodile'],  
+                ['grass', 'mouse', 'snake', 'hawk'],            
+                ['grass', 'rabbit', 'snake', 'hawk'],           
+                ['grass', 'worm', 'bird', 'hawk'],              
+                ['algae', 'small_fish', 'frog', 'crocodile'],   
+                ['grass', 'grasshopper', 'bird', 'hawk'],       
+                ['grass', 'grasshopper', 'bird', 'snake'],      
+                ['grass', 'worm', 'bird', 'snake']              
             ], 
-            
-            // Level 3: An array containing the single valid chain
             'level3': [
-                // السلاسل الخمسة الأصلية لـ 5 حلقات
                 ['grass', 'worm', 'frog', 'snake', 'hawk'],              
                 ['grass', 'grasshopper', 'frog', 'snake', 'hawk'], 
                 ['grass', 'grasshopper', 'bird', 'snake', 'hawk'],      
                 ['grass', 'worm', 'bird', 'snake', 'hawk'],             
                 ['algae', 'small_fish', 'frog', 'snake', 'crocodile'],  
                 ['algae', 'small_fish', 'frog', 'snake', 'hawk'],        
-                // --- الإضافات الجديدة للمستوى الثالث (5 حلقات) ---
-                ['grass', 'worm', 'mouse', 'snake', 'crocodile'],       // عشب ← دودة ← فأر ← ثعبان ← تمساح
-                ['grass', 'worm', 'mouse', 'snake', 'hawk'],            // عشب ← دودة ← فأر ← ثعبان ← صقر
-                ['grass', 'grasshopper', 'mouse', 'snake', 'crocodile'],// عشب ← جرادة ← فأر ← ثعبان ← تمساح
-                ['grass', 'grasshopper', 'mouse', 'snake', 'hawk']      // عشب ← جرادة ← فأر ← ثعبان ← صقر
-                // ------------------------------------------------
+                ['grass', 'worm', 'mouse', 'snake', 'crocodile'],       
+                ['grass', 'worm', 'mouse', 'snake', 'hawk'],            
+                ['grass', 'grasshopper', 'mouse', 'snake', 'crocodile'],
+                ['grass', 'grasshopper', 'mouse', 'snake', 'hawk']      
             ]
         };
 
-        // 3. تعريف أوصاف المراكز في السلسلة
-        const ZONE_LABELS = [
-            'المنتج', 
-            'مستهلك أول (عاشب)', 
-            'مستهلك ثانٍ (لاحم/قارت)', 
-            'مستهلك ثالث (لاحم)',
-            'مستهلك رابع (لاحم/قمة الهرم)'
-        ];
+        const ZONE_LABELS = ['المنتج', 'مستهلك أول', 'مستهلك ثانٍ', 'مستهلك ثالث', 'مستهلك رابع'];
+        let originalItems = "";
 
-        // 4. حفظ المحتوى الأصلي لمنطقة السحب
-        let originalItems = draggableArea.innerHTML;
-        
         // ------------------------------------------------------------------
-        // وظيفة لإظهار رسالة
+        // وظائف الواجهة (القلوب، الأزرار، الوقت، الرسائل)
         // ------------------------------------------------------------------
         function showMessage(msg, classes) {
             messageBox.textContent = msg;
-            // إظهار الرسالة وتطبيق التنسيقات
-            messageBox.className = classes + ' text-lg p-3 rounded-lg font-medium block border';
+            messageBox.className = classes + ' text-lg p-3 rounded-lg font-bold block border shadow-sm';
+        }
+
+        function updateLivesUI() {
+            const container = document.getElementById('lives-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heart = document.createElement('div');
+                heart.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="${i < lives ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 transition-all duration-300 ${i >= lives ? 'opacity-30 scale-75' : ''}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
+                container.appendChild(heart);
+            }
+        }
+
+        function updateLevelButtons() {
+            const btn1 = document.getElementById('level1-btn');
+            const btn2 = document.getElementById('level2-btn');
+            const btn3 = document.getElementById('level3-btn');
+
+            [btn1, btn2, btn3].forEach(btn => btn.classList.remove('bg-green-700', 'bg-indigo-700', 'bg-red-700', 'bg-green-500', 'bg-indigo-500', 'bg-red-500', 'ring-4'));
+
+            if (maxUnlockedLevel >= 2) {
+                btn2.disabled = false;
+                btn2.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn2.innerHTML = 'المستوى 2 (4 حلقات)';
+            } else {
+                btn2.disabled = true;
+                btn2.classList.add('opacity-50', 'cursor-not-allowed');
+                btn2.innerHTML = 'المستوى 2 (4 حلقات) 🔒';
+            }
+
+            if (maxUnlockedLevel >= 3) {
+                btn3.disabled = false;
+                btn3.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn3.innerHTML = 'المستوى 3 (5 حلقات)';
+            } else {
+                btn3.disabled = true;
+                btn3.classList.add('opacity-50', 'cursor-not-allowed');
+                btn3.innerHTML = 'المستوى 3 (5 حلقات) 🔒';
+            }
+
+            // تلوين الزر النشط
+            if (CURRENT_LEVEL === 'level1') btn1.classList.add('bg-green-700', 'ring-4', 'ring-green-300');
+            else btn1.classList.add('bg-green-500');
+
+            if (CURRENT_LEVEL === 'level2') btn2.classList.add('bg-indigo-700', 'ring-4', 'ring-indigo-300');
+            else btn2.classList.add('bg-indigo-500');
+
+            if (CURRENT_LEVEL === 'level3') btn3.classList.add('bg-red-700', 'ring-4', 'ring-red-300');
+            else btn3.classList.add('bg-red-500');
+        }
+
+        function handleTimeout() {
+            playFailureSound();
+            loseLife('انتهى الوقت! ⏰');
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLimit = CURRENT_LEVEL === 'level1' ? 30 : CURRENT_LEVEL === 'level2' ? 40 : 50;
+            timeLeft = timeLimit;
+            updateTimeBar();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimeBar();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimeBar() {
+            const bar = document.getElementById('time-bar');
+            const text = document.getElementById('time-text');
+            const percentage = (timeLeft / timeLimit) * 100;
+            
+            bar.style.width = `${Math.max(0, percentage)}%`;
+            text.textContent = `00:${timeLeft < 10 ? '0' + Math.max(0, timeLeft) : Math.max(0, timeLeft)}`;
+
+            if(percentage > 50) {
+                bar.className = 'bg-green-500 h-4 rounded-full transition-all duration-1000 ease-linear';
+                text.className = 'text-sm font-bold text-green-700 bg-white px-2 rounded-md shadow-sm border border-green-200';
+            } else if(percentage > 20) {
+                bar.className = 'bg-yellow-500 h-4 rounded-full transition-all duration-1000 ease-linear';
+                text.className = 'text-sm font-bold text-yellow-700 bg-white px-2 rounded-md shadow-sm border border-yellow-200';
+            } else {
+                bar.className = 'bg-red-500 h-4 rounded-full transition-all duration-1000 ease-linear pulse-animation';
+                text.className = 'text-sm font-bold text-red-700 bg-white px-2 rounded-md shadow-sm border border-red-200 pulse-animation';
+            }
+        }
+
+        function showResultScreen(isWin, reason = '') {
+            clearInterval(timerInterval);
+            const resultScreen = document.getElementById('result-screen');
+            const title = document.getElementById('result-title');
+            const message = document.getElementById('result-message');
+            const icon = document.getElementById('result-icon');
+            const rewardContainer = document.getElementById('reward-container');
+
+            if (isWin) {
+                icon.innerHTML = '🏆';
+                title.textContent = 'مبروك الفوز!';
+                title.className = 'text-3xl font-extrabold mb-4 text-green-600';
+                message.textContent = 'لقد أكملت جميع المستويات في اللعبة بنجاح مذهل!';
+                resultScreen.querySelector('.bg-white').classList.add('border-green-400');
+                resultScreen.querySelector('.bg-white').classList.remove('border-red-400', 'border-white');
+                rewardContainer.classList.remove('hidden'); // إظهار زر الجائزة والتحميل
+                playSuccessSound();
+                
+                // التوجيه التلقائي لرابط الجائزة بعد 4 ثوانٍ
+                setTimeout(() => {
+                    window.location.href = "https://talented-nation.github.io/database/sreward2.html";
+                }, 4000);
+            } else {
+                icon.innerHTML = '💔';
+                title.textContent = 'نهاية اللعبة';
+                title.className = 'text-3xl font-extrabold mb-4 text-red-600';
+                message.textContent = reason + ' نفدت جميع محاولاتك.';
+                resultScreen.querySelector('.bg-white').classList.add('border-red-400');
+                resultScreen.querySelector('.bg-white').classList.remove('border-green-400', 'border-white');
+                rewardContainer.classList.add('hidden'); // إخفاء الجائزة في حال الخسارة
+                playFailureSound();
+            }
+
+            resultScreen.classList.remove('hidden');
+            resultScreen.classList.add('flex');
+        }
+
+        function loseLife(reason) {
+            lives--;
+            updateLivesUI();
+            clearInterval(timerInterval);
+
+            if (lives <= 0) {
+                showMessage(reason + ' نفدت جميع محاولاتك!', 'bg-red-100 border-red-500 text-red-700 pulse-animation');
+                setTimeout(() => {
+                    showResultScreen(false, reason);
+                }, 2500);
+            } else {
+                showMessage(reason + ` تبقت لك ${lives} محاولات. جرب مجدداً!`, 'bg-red-100 border-red-500 text-red-700');
+                // إعادة ترتيب العناصر وبدء الوقت من جديد لنفس المستوى
+                setTimeout(() => {
+                    clearBoard(false); 
+                    startTimer();
+                }, 2000);
+            }
         }
 
         // ------------------------------------------------------------------
-        // 1. وظائف تهيئة المستوى
+        // وظائف تهيئة المستوى واللعب
         // ------------------------------------------------------------------
-
         function loadLevel(level) {
+            // التحقق من أن اللاعب لا يتخطى القفل
+            if (level === 'level2' && maxUnlockedLevel < 2) return;
+            if (level === 'level3' && maxUnlockedLevel < 3) return;
+
             CURRENT_LEVEL = level;
             const chainLength = CORRECT_CHAINS[level][0].length;
             
-            const descriptionElement = document.getElementById('level-description');
-            const level1Btn = document.getElementById('level1-btn');
-            const level2Btn = document.getElementById('level2-btn');
-            const level3Btn = document.getElementById('level3-btn');
+            document.getElementById('level-description').textContent = `المستوى ${level.slice(-1)}: رتب الكائنات الحية لتكون سلسلة غذائية صحيحة من ${chainLength} حلقات.`;
             
-            descriptionElement.textContent = `المستوى ${level.slice(-1)}: رتب الكائنات الحية لتكون سلسلة غذائية صحيحة من ${chainLength} حلقات.`;
-            
-            [level1Btn, level2Btn, level3Btn].forEach(btn => {
-                btn.classList.remove('bg-green-700', 'bg-indigo-700', 'bg-red-700');
-                if (btn.id === 'level1-btn') btn.classList.add('bg-green-500');
-                if (btn.id === 'level2-btn') btn.classList.add('bg-indigo-500');
-                if (btn.id === 'level3-btn') btn.classList.add('bg-red-500');
-            });
-            
-            if (level === 'level1') {
-                level1Btn.classList.replace('bg-green-500', 'bg-green-700');
-            } else if (level === 'level2') {
-                level2Btn.classList.replace('bg-indigo-500', 'bg-indigo-700');
-            } else if (level === 'level3') {
-                level3Btn.classList.replace('bg-red-500', 'bg-red-700');
-            }
-
-            resetGame(false, true); 
+            updateLevelButtons();
+            updateLivesUI();
+            clearBoard(false); // مسح بدون إظهار رسالة المسح
 
             dropArea.innerHTML = '';
             dropArea.className = `grid w-full max-w-7xl p-6 bg-white rounded-xl shadow-2xl gap-4 md:gap-8 grid-cols-${chainLength} md:grid-cols-${chainLength}`;
@@ -434,30 +557,26 @@
             for (let i = 0; i < chainLength; i++) {
                 const zone = document.createElement('div');
                 zone.id = `zone-${i + 1}`;
-                zone.setAttribute('data-correct-item', ''); 
                 zone.classList.add('drop-zone', 'flex', 'flex-col', 'items-center', 'justify-center', 'rounded-lg', 'p-4', 'text-center');
                 
                 zone.innerHTML = `
-                    <span class="text-gray-500 text-sm">${i + 1}. ${ZONE_LABELS[i]}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mt-2 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <!-- أيقونة منتج للبداية وأيقونة سلسلة لغير ذلك -->
+                    <span class="text-gray-500 text-sm font-bold">${i + 1}. ${ZONE_LABELS[i]}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mt-2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         ${i === 0 ? '<path d="M12 22a2 2 0 0 0 2-2V4a2 2 0 0 0-4 0v16a2 2 0 0 0 2 2z"/><path d="M10 18h4"/><path d="M8 14h8"/><path d="M6 10h12"/><path d="M4 6h16"/>' : '<path d="M18 6L6 18M6 6l12 12"/>'}
                     </svg>
                 `;
-
                 addDropListeners(zone);
-
                 dropArea.appendChild(zone);
             }
             
-            showMessage(`تم تحميل المستوى ${level === 'level1' ? 'الأول (3 حلقات)' : (level === 'level2' ? 'الثاني (4 حلقات)' : 'الثالث (5 حلقات)')} بنجاح.`, 'bg-blue-100 border-blue-500 text-blue-700');
+            // بدء المؤقت
+            startTimer();
+            messageBox.classList.add('hidden');
         }
 
         // ------------------------------------------------------------------
-        // 2. معالجات أحداث السحب (Event Delegation)
+        // معالجات أحداث السحب (Event Delegation)
         // ------------------------------------------------------------------
-
-        // استخدام تفويض الأحداث على الجسم (Body)
         document.body.addEventListener('dragstart', handleDragStartDelegate);
         document.body.addEventListener('dragend', handleDragEnd);
 
@@ -473,10 +592,8 @@
             if (target) {
                 draggedItem = target;
                 e.dataTransfer.setData('text/plain', draggedItem.id);
-                setTimeout(() => {
-                    draggedItem.classList.add('opacity-50');
-                }, 0);
-                playDragSound(); // تشغيل صوت السحب
+                setTimeout(() => draggedItem.classList.add('opacity-50'), 0);
+                playDragSound();
             } else {
                 e.preventDefault(); 
             }
@@ -488,10 +605,6 @@
                 draggedItem = null;
             }
         }
-        
-        // ------------------------------------------------------------------
-        // 3. وظائف الإفلات (Drop) والتحقق
-        // ------------------------------------------------------------------
         
         function addDropListeners(zone) {
             zone.addEventListener('dragover', (e) => {
@@ -517,16 +630,14 @@
 
                 const itemInZone = zone.querySelector('.draggable');
                 if (itemInZone) { 
-                    showMessage('يجب إزالة العنصر الموجود في هذا المربع أولاً.', 'bg-red-100 border-red-500 text-red-700');
-                    playFailureSound(); // صوت خطأ عند الإفلات على مربع ممتلئ
+                    showMessage('المربع ممتلئ! قم بإزالة الكائن الحالي أولاً.', 'bg-yellow-100 border-yellow-500 text-yellow-700');
                     return;
                 }
                 
-                // 1. إزالة العنصر من مكانه الأصلي
+                // إزالة العنصر من مكانه الأصلي
                 const oldParent = itemToDrop.parentNode;
                 if (oldParent) {
                     oldParent.removeChild(itemToDrop);
-                    
                     if (oldParent.classList.contains('drop-zone')) {
                         const oldPlaceholderSpan = oldParent.querySelector('span:first-child');
                         if(oldPlaceholderSpan) oldPlaceholderSpan.style.opacity = '1';
@@ -535,10 +646,8 @@
                     }
                 }
                 
-                // 2. وضع العنصر المسحوب في منطقة الإفلات الجديدة
+                // وضع العنصر في المنطقة الجديدة
                 zone.appendChild(itemToDrop);
-                
-                // 3. تعديل التنسيق عند الإفلات
                 itemToDrop.classList.remove('p-3', 'w-28', 'h-32', 'flex-col', 'text-center');
                 itemToDrop.classList.add('p-2', 'w-full', 'h-auto', 'flex-row', 'justify-center', 'items-center', 'space-x-2');
                 
@@ -551,15 +660,16 @@
                     imgElement.classList.add('w-12', 'h-12');
                 }
 
-                // 4. إخفاء التسمية والأيقونة الفارغة في المنطقة الجديدة
                 zone.querySelector('span:first-child').style.opacity = '0';
                 zone.querySelector('svg').style.opacity = '0';
 
-                showMessage('تم وضع العنصر في السلسلة.', 'bg-blue-100 border-blue-500 text-blue-700');
-                playDragSound(); // صوت إفلات ناجح
+                playDragSound();
             });
         }
         
+        // ------------------------------------------------------------------
+        // التحقق من الإجابة
+        // ------------------------------------------------------------------
         function checkFoodChain() {
             const currentDropZones = document.querySelectorAll('#drop-area > div'); 
             
@@ -572,8 +682,7 @@
             const chainLength = possibleChains[0].length;
 
             if (currentChain.includes(null)) {
-                showMessage(`الرجاء إكمال جميع الحلقات الـ ${chainLength} في السلسلة الغذائية أولاً.`, 'bg-yellow-100 border-yellow-500 text-yellow-700');
-                playFailureSound(); // صوت خطأ عند النقص
+                showMessage(`الرجاء إكمال جميع الحلقات الـ ${chainLength} أولاً!`, 'bg-yellow-100 border-yellow-500 text-yellow-700');
                 return;
             }
 
@@ -581,53 +690,63 @@
 
             for (const correctChain of possibleChains) {
                 if (currentChain.length !== correctChain.length) continue; 
-                
                 const match = currentChain.every((item, index) => item === correctChain[index]);
-                
                 if (match) {
                     isCorrect = true;
                     break;
                 }
             }
 
-
             if (isCorrect) {
+                clearInterval(timerInterval); // إيقاف الوقت عند الفوز
                 let successMessage = '';
+                let nextLevel = null;
+
                 if (CURRENT_LEVEL === 'level1') {
-                    successMessage = 'ممتاز! السلسلة الغذائية صحيحة (3 حلقات). يمكنك الآن الانتقال للمستوى التالي.';
+                    maxUnlockedLevel = Math.max(maxUnlockedLevel, 2);
+                    successMessage = 'ممتاز! السلسلة صحيحة (3 حلقات). جاري الانتقال للمستوى الثاني...';
+                    nextLevel = 'level2';
                 } else if (CURRENT_LEVEL === 'level2') {
-                    successMessage = 'رائع! لقد أتقنت المستوى الثاني (4 حلقات). يمكنك الآن الانتقال للمستوى الثالث.';
+                    maxUnlockedLevel = Math.max(maxUnlockedLevel, 3);
+                    successMessage = 'رائع! لقد أتقنت المستوى الثاني (4 حلقات). جاري الانتقال للمستوى الثالث...';
+                    nextLevel = 'level3';
                 } else {
-                    successMessage = 'مذهل! لقد أكملت المستوى الثالث. السلسلة الغذائية صحيحة ومكونة من 5 حلقات!';
+                    successMessage = 'مذهل! لقد أكملت اللعبة بأكملها بنجاح! 🏆';
                 }
+                
+                updateLevelButtons();
                 showMessage(successMessage, 'bg-green-100 border-green-500 text-green-700');
-                playSuccessSound(); // تشغيل صوت النجاح
+                playSuccessSound();
                 
                 currentDropZones.forEach(zone => {
                     zone.classList.add('bg-green-200', 'border-green-600', 'animate-pulse');
                     zone.classList.remove('drop-zone');
                 });
+
+                if (nextLevel) {
+                    setTimeout(() => {
+                        loadLevel(nextLevel);
+                    }, 4000); // انتقال تلقائي بعد 4 ثوانٍ
+                } else {
+                    setTimeout(() => {
+                        showResultScreen(true);
+                    }, 3000); // إظهار شاشة الفوز النهائية بدون أزرار
+                }
             } else {
-                showMessage(`حاول مرة أخرى. راجع ترتيب الكائنات الحية في السلسلة المكونة من ${chainLength} حلقات.`, 'bg-red-100 border-red-500 text-red-700');
-                playFailureSound(); // تشغيل صوت الخسارة
+                playFailureSound();
+                loseLife('ترتيب خاطئ للسلسلة!');
             }
         }
-        
+    
         // ------------------------------------------------------------------
-        // 4. دالة إعادة تعيين اللعبة 
+        // إفراغ اللوحة للتجربة مرة أخرى (بدون خسارة محاولة أو وقت)
         // ------------------------------------------------------------------
-
-        function resetGame(shouldShowMessage = true, shouldResetItems = true) {
-            messageBox.classList.add('hidden');
-            
+        function clearBoard(showUserMessage = true) {
             const currentDropZones = document.querySelectorAll('#drop-area > div'); 
             currentDropZones.forEach(zone => {
                 const itemInZone = zone.querySelector('.draggable');
                 if (itemInZone) {
-                    // إرجاع العنصر إلى منطقة السحب
                     draggableArea.appendChild(itemInZone);
-                    
-                    // إعادة تنسيق العنصر ليتناسب مع منطقة السحب
                     itemInZone.classList.remove('p-2', 'w-full', 'h-auto', 'flex-row', 'justify-center', 'items-center', 'space-x-2');
                     itemInZone.classList.add('p-3', 'w-28', 'h-32', 'flex-col', 'text-center');
                     
@@ -650,27 +769,19 @@
                 if(placeholderSvg) placeholderSvg.style.opacity = '1';
             });
             
-            // نضمن وجود جميع العناصر الـ 13 في منطقة السحب بالترتيب الأصلي
-            if (shouldResetItems) {
-                draggableArea.innerHTML = originalItems; 
-            }
+            draggableArea.innerHTML = originalItems; 
 
-            if (shouldShowMessage) {
-                 showMessage('تم إعادة تعيين اللعبة.', 'bg-gray-200 border-gray-400 text-gray-700');
+            if (showUserMessage) {
+                showMessage('تم إرجاع الكائنات إلى أماكنها.', 'bg-gray-200 border-gray-400 text-gray-700');
             }
         }
 
         // ------------------------------------------------------------------
-        // 5. التهيئة الأولية
+        // التهيئة الأولية
         // ------------------------------------------------------------------
-
         window.addEventListener('load', () => {
-             // يجب أن يتم تعريف originalItems بعد تحميل DOM مباشرةً
              originalItems = draggableArea.innerHTML;
-             
-             // تهيئة الأصوات الجديدة أولاً
              initAudio(); 
-             
              loadLevel(CURRENT_LEVEL);
         });
         
