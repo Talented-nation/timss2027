@@ -294,9 +294,15 @@
         <!-- 1. Progress Map / Sidebar (Now 5 stages) -->
         <div class="progress-map">
             <h1 class="text-3xl font-bold mb-4">رحلة تيمز للمستكشف الصغير</h1>
-            <p class="text-lg font-light mb-8">أجب على 15 سؤالاً للوصول إلى كأس الرياضيات!</p>
+            <p class="text-lg font-light mb-4">أجب على 15 سؤالاً للوصول إلى كأس الرياضيات!</p>
 
-            <div class="map-path">
+            <!-- Lives Display -->
+            <div id="livesContainer" class="mb-4 bg-white/20 p-3 rounded-xl w-full max-w-[200px] shadow-sm">
+                <p class="text-sm mb-1 font-semibold text-white">المحاولات المتبقية:</p>
+                <div id="livesDisplay" class="text-2xl tracking-widest drop-shadow-md text-center">🏆🏆🏆</div>
+            </div>
+
+            <div class="map-path mt-4">
                 <!-- Stage Icons (1 to 5) -->
                 <div id="stage-1" class="stage-icon current">1</div>
                 <div id="stage-2" class="stage-icon">2</div>
@@ -376,9 +382,9 @@
                 "options": ["35 دينار و 300 فلس", "43 دينار و 100 فلس", "54 دينار و 300 فلس", "45 دينار و 300 فلس"]
             },
             {
-                "problem": "ما هي القيمة المفقودة التي تجعل المعادلة التالية صحيحة؟ (\ 72 \÷ \? = 8\ )",
+                "problem": "ما هي القيمة المفقودة التي تجعل المعادلة التالية صحيحة؟ ( 72 ÷ ? = 8 )",
                 "answer": "9",
-                "explanation": "لإيجاد القيمة المفقودة، نقسم العدد الأكبر (72) على النتيجة (8): (72 \div 8 = 9). وبالتالي، (72 \div 9 = 8).",
+                "explanation": "لإيجاد القيمة المفقودة، نقسم العدد الأكبر (72) على النتيجة (8): (72 ÷ 8 = 9). وبالتالي، (72 ÷ 9 = 8).",
                 "options": ["6", "7", "8", "9"]
             },
             {
@@ -397,7 +403,7 @@
             {
                 "problem": "مستطيل طوله 8 سم وعرضه 3 سم. ما هو محيط هذا المستطيل؟",
                 "answer": "22 سم",
-                "explanation": "محيط المستطيل هو (2 \times (الطول + العرض)). إذن، (2 \times (8 \text{ سم} + 3 \text{ سم}) = 2 \times 11 \text{ سم} = 22) سم.",
+                "explanation": "محيط المستطيل هو (2 × (الطول + العرض)). إذن، (2 × (8 سم + 3 سم) = 2 × 11 سم = 22) سم.",
                 "options": ["24 سم", "11 سم", "22 سم", "28 سم"]
             },
             {
@@ -409,13 +415,13 @@
             {
                 "problem": "مربع مساحته 16 متر مربع. ما هو طول ضلعه؟",
                 "answer": "4 متر",
-                "explanation": "مساحة المربع هي (الضلع \times الضلع). لإيجاد طول الضلع، نجد العدد الذي إذا ضُرب في نفسه يعطي (16). (4 \times 4 = 16). إذن، طول الضلع هو 4 متر.",
+                "explanation": "مساحة المربع هي (الضلع × الضلع). لإيجاد طول الضلع، نجد العدد الذي إذا ضُرب في نفسه يعطي (16). (4 × 4 = 16). إذن، طول الضلع هو 4 متر.",
                 "options": ["8 متر", "4 متر", "16 متر", "2 متر"]
             },
             {
                 "problem": "كم عدد الأمتار في 3 كيلومترات؟",
                 "answer": "3000 متر",
-                "explanation": "الكيلومتر الواحد يساوي 1000 متر. لذا، 3 كيلومترات تساوي (3 \times 1000 = 3000) متر.",
+                "explanation": "الكيلومتر الواحد يساوي 1000 متر. لذا، 3 كيلومترات تساوي (3 × 1000 = 3000) متر.",
                 "options": ["300 متر", "1000 متر", "3000 متر", "30000 متر"]
             },
             // Stage 3: Data and Chance (Graphs and Probability) (Questions 9-12) - 4 Qs
@@ -445,15 +451,15 @@
             },
             // Stage 4: Patterns and Algebraic Thinking (Questions 13-15) - 3 Qs
             {
-                "problem": "أكمل النمط التالي: (\ 5, 10, 15, 20, ?\, 30\ )",
+                "problem": "أكمل النمط التالي: ( 5, 10, 15, 20, ?, 30 )",
                 "answer": "25",
                 "explanation": "النمط هو إضافة (5) إلى العدد السابق في كل مرة. (20 + 5 = 25).",
                 "options": ["24", "25", "26", "28"]
             },
             {
-                "problem": "إذا كان لدينا المعادلة التالية: (\ x + 12 = 30\ ). فما هي قيمة (\ x\ )؟",
+                "problem": "إذا كان لدينا المعادلة التالية: ( x + 12 = 30 ). فما هي قيمة ( x )؟",
                 "answer": "18",
-                "explanation": "لإيجاد قيمة (x)، نطرح (12) من (30): (\ x = 30 - 12 = 18\ ).",
+                "explanation": "لإيجاد قيمة (x)، نطرح (12) من (30): ( x = 30 - 12 = 18 ).",
                 "options": ["42", "20", "18", "16"]
             },
             {
@@ -468,6 +474,7 @@
         const TOTAL_QUESTIONS = 15; 
         const QUESTIONS_PER_STAGE = 4; // Changed from 3 to 4 (for the first 3 stages)
         const TIME_LIMIT_SECONDS = 30; 
+        const MAX_LIVES = 3; // Maximum lives/trophies
         
         // UPDATED STAGE TOPICS (Removed Fractions/Decimals)
         const STAGE_TOPICS = [
@@ -483,6 +490,7 @@
         let questions = []; 
         let currentQuestionIndex = 0;
         let score = 0;
+        let lives = MAX_LIVES;
         let isGameActive = false;
         let selectedOption = null; 
         let timeRemaining = TIME_LIMIT_SECONDS; 
@@ -543,6 +551,13 @@
             
             // Enable submit button
             submitAnswerBtn.disabled = false;
+        }
+
+        function updateLivesUI() {
+            const livesDisplay = document.getElementById('livesDisplay');
+            if (livesDisplay) {
+                livesDisplay.textContent = lives > 0 ? '🏆'.repeat(lives) : '❌';
+            }
         }
 
         function updateProgressMap() {
@@ -703,11 +718,12 @@
             
             // Set initial modal for game start
             modalTitle.textContent = "اللعبة جاهزة!";
-            modalBody.innerHTML = `<p>تم تحميل 15 سؤالاً على نمط تيمز في 4 مراحل. اضغط على 'ابدأ اللعبة!' للبدء.</p>`;
+            modalBody.innerHTML = `<p>تم تحميل 15 سؤالاً على نمط تيمز في 4 مراحل. لديك 3 كؤوس (محاولات). حظاً موفقاً!</p>`;
             modalCloseBtn.textContent = "ابدأ اللعبة!";
             
-            // Set button style back to default blue for start screen
-            modalCloseBtn.classList.remove('bg-primary-blue', 'text-white');
+            // Reset button style
+            modalCloseBtn.style.display = 'inline-block';
+            modalCloseBtn.classList.remove('bg-primary-blue', 'text-white', 'bg-green-500');
             modalCloseBtn.classList.add('bg-gray-200', 'text-black');
             
             showBackdrop(false, true);
@@ -721,7 +737,9 @@
             hideBackdrop();
             currentQuestionIndex = 0;
             score = 0;
+            lives = MAX_LIVES;
             isGameActive = true;
+            updateLivesUI();
             loadQuestion(currentQuestionIndex);
         }
 
@@ -729,7 +747,7 @@
          * Step 3: Load a question into the UI.
          */
         function loadQuestion(index) {
-            if (index >= TOTAL_QUESTIONS) {
+            if (index >= TOTAL_QUESTIONS || lives <= 0) {
                 endGame();
                 return;
             }
@@ -746,7 +764,7 @@
          * Step 4: Check the answer.
          */
         submitAnswerBtn.addEventListener('click', () => {
-            if (!isGameActive || !selectedOption) return;
+            if (!isGameActive || !selectedOption && selectedOption !== "") return;
 
             // Stop the timer immediately upon submission
             stopTimer();
@@ -776,8 +794,12 @@
                 feedbackArea.classList.remove('incorrect');
                 feedbackArea.classList.add('correct');
             } else if (isTimeout) {
-                // Feedback is already set by handleTimeout, do nothing here.
+                // Feedback is already set by handleTimeout, handle lives decrement here
+                lives--;
+                updateLivesUI();
             } else {
+                lives--;
+                updateLivesUI();
                 feedbackArea.textContent = `إجابة خاطئة. الإجابة الصحيحة هي: ${currentQ.answer}.`;
                 feedbackArea.classList.remove('correct');
                 feedbackArea.classList.add('incorrect');
@@ -812,17 +834,33 @@
                 <p class="text-gray-800 text-justify">${q.explanation.replace(/\n/g, '<br>')}</p>
             `;
             
-            modalCloseBtn.textContent = (currentQuestionIndex < TOTAL_QUESTIONS - 1) ? "السؤال التالي >>" : "عرض النتائج النهائية";
-            
-            // Set button to black text on a light background for contrast 
-            modalCloseBtn.classList.remove('bg-primary-blue', 'text-white');
+            // Reset modal button style
+            modalCloseBtn.style.display = 'inline-block';
+            modalCloseBtn.classList.remove('bg-primary-blue', 'text-white', 'bg-green-500');
             modalCloseBtn.classList.add('bg-gray-200', 'text-black');
 
-            modalCloseBtn.onclick = () => {
-                hideBackdrop();
-                currentQuestionIndex++;
-                loadQuestion(currentQuestionIndex);
-            };
+            // Logic for next action
+            if (lives <= 0) {
+                modalCloseBtn.textContent = "عرض النتائج النهائية";
+                modalCloseBtn.onclick = () => {
+                    hideBackdrop();
+                    endGame();
+                };
+            } else if (currentQuestionIndex < TOTAL_QUESTIONS - 1) {
+                modalCloseBtn.textContent = "السؤال التالي >>";
+                modalCloseBtn.onclick = () => {
+                    hideBackdrop();
+                    currentQuestionIndex++;
+                    loadQuestion(currentQuestionIndex);
+                };
+            } else {
+                modalCloseBtn.textContent = "عرض النتائج النهائية";
+                modalCloseBtn.onclick = () => {
+                    hideBackdrop();
+                    currentQuestionIndex++;
+                    endGame();
+                };
+            }
 
             showBackdrop(false, true);
         }
@@ -834,30 +872,39 @@
             isGameActive = false;
             stopTimer(); // Ensure timer stops on game end
             let finalMessage;
+            let isWinner = false; // Flag to check if the user won
             
-            if (score === TOTAL_QUESTIONS) {
-                finalMessage = "أنت عبقري! 🌟 لقد حصلت على العلامة الكاملة وحققت كأس الرياضيات.";
-            } else if (score >= 12) { 
-                finalMessage = "نتيجة ممتازة! 🎉 أنت مستعد لاختبارات تيمز. استمر في التدريب.";
+            if (lives > 0 && score >= 12) { 
+                finalMessage = "أنت عبقري! 🌟 لقد حصلت على نتيجة رائعة وحققت كأس الرياضيات.";
+                isWinner = true;
             } else {
-                finalMessage = "أداء جيد! استمر في التدريب على مفاهيم الرياضيات للوصول إلى مستوى أعلى.";
+                // Either lost all lives or didn't get enough score
+                finalMessage = "لقد فقدت جميع كؤوسك (محاولاتك)! حظاً أوفر في المرة القادمة.";
+                isWinner = false;
             }
 
             modalTitle.textContent = "انتهت رحلتك!";
             modalBody.innerHTML = `
-                <div class="text-5xl mb-4 text-accent-green">🏆</div>
+                <div class="text-5xl mb-4 ${isWinner ? 'text-accent-green' : 'text-red-500'}">${isWinner ? '🏆' : '❌'}</div>
                 <p class="text-2xl font-bold mb-3">نتيجة اللعبة النهائية:</p>
                 <p class="text-4xl text-primary-blue font-extrabold mb-4">${score} / ${TOTAL_QUESTIONS}</p>
                 <p>${finalMessage}</p>
             `;
 
-            modalCloseBtn.textContent = "ابدأ جولة جديدة";
-            
-            // Set button to black text on a light background for contrast 
-            modalCloseBtn.classList.remove('bg-primary-blue', 'text-white');
-            modalCloseBtn.classList.add('bg-gray-200', 'text-black');
-            
-            modalCloseBtn.onclick = generateQuestions; // Restart the game
+            // If the user wins (survives), direct them to the reward page
+            if (isWinner) {
+                modalCloseBtn.textContent = "استلم جائزتك! 🎁";
+                modalCloseBtn.classList.remove('bg-gray-200', 'text-black', 'bg-primary-blue');
+                modalCloseBtn.classList.add('bg-green-500', 'text-white');
+                modalCloseBtn.style.display = 'inline-block';
+                
+                modalCloseBtn.onclick = () => {
+                    window.location.href = "https://talented-nation.github.io/database/reward5.html";
+                };
+            } else {
+                // If they didn't win, completely hide the close/restart button (no retry allowed)
+                modalCloseBtn.style.display = 'none';
+            }
 
             updateProgressMap();
             showBackdrop(false, true);
