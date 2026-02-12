@@ -137,15 +137,37 @@
         <h1 class="text-4xl font-extrabold text-green-700 mb-2">لعبة مطابقة التغيرات</h1>
         <p class="text-xl text-green-600 mb-4">فيزيائي أم كيميائي؟ تحدى نفسك!</p>
 
-        <div id="status-panel" class="flex justify-between items-center bg-white p-4 rounded-xl shadow-lg border border-green-200">
+        <div id="status-panel" class="flex flex-wrap justify-center sm:justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-lg border border-green-200">
             <div class="text-lg font-bold text-green-800">
                 المستوى: <span id="level-display" class="text-2xl text-red-500">1</span>
+            </div>
+            <div class="text-lg font-bold text-green-800">
+                الفرص: <span id="lives-display" class="text-2xl tracking-widest">❤️❤️❤️</span>
             </div>
             <div class="text-lg font-bold text-green-800">
                 الوقت المتبقي: <span id="timer-display" class="text-2xl text-red-500">0</span> ثانية
             </div>
         </div>
+
+        <!-- شريط الوقت (Time Bar) -->
+        <div class="w-full mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-3 sm:h-4 shadow-inner overflow-hidden border border-gray-300">
+                <div id="time-bar" class="bg-green-500 h-full rounded-full transition-all duration-1000 ease-linear" style="width: 100%"></div>
+            </div>
+        </div>
     </header>
+
+    <!-- نافذة الفوز المنبثقة (Win Modal) -->
+    <div id="win-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] hidden backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-11/12 text-center shadow-2xl border-4 border-yellow-400 transform transition-all">
+            <div class="text-6xl mb-4">🏆</div>
+            <h2 class="text-3xl font-extrabold text-green-700 mb-4">أنت بطل حقيقي!</h2>
+            <p class="text-xl text-gray-700 mb-8">لقد أتممت جميع المستويات بنجاح وأثبتّ أنك عبقري في العلوم!</p>
+            <a href="https://talented-nation.github.io/database/sreward3.html" class="inline-block w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transform hover:scale-105 active:scale-95 transition duration-300 text-2xl">
+                اضغط هنا لاستلام جائزتك 🎁
+            </a>
+        </div>
+    </div>
 
     <!-- منطقة اللعبة -->
     <main class="w-full max-w-4xl flex flex-col items-center">
@@ -157,7 +179,7 @@
 
         <!-- رسائل اللعبة وزر التحكم -->
         <div class="mt-8 flex flex-col items-center w-full">
-            <div id="message-box" class="text-2xl font-bold text-gray-700 h-10 mb-4"></div>
+            <div id="message-box" class="text-2xl font-bold text-gray-700 h-10 mb-4 text-center"></div>
             
             <button id="start-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-xl transition duration-300 transform hover:scale-105 active:scale-95 text-xl" onclick="startGame()">
                 ابدأ اللعبة!
@@ -183,7 +205,7 @@
             1: {
                 pairs: [
                     // أمثلة فيزيائية
-                    { id: 'p1', type: 'type', text: 'تغير فيزيائي', content: 'ذوبان الثلج' },
+                    { id: 'p1', type: 'type', text: 'تغير فيزيائي', content: 'انصهار الثلج' },
                     { id: 'p2', type: 'type', text: 'تغير فيزيائي', content: 'قطع الورق' },
                     { id: 'p3', type: 'type', text: 'تغير فيزيائي', content: 'كسر الزجاج' },
                     // أمثلة كيميائية
@@ -242,11 +264,17 @@
         let timerInterval;
         let timeRemaining;
         let lockBoard = false; 
+        
+        // نظام الفرص (Lives)
+        const MAX_LIVES = 3;
+        let lives = MAX_LIVES;
 
         // عناصر DOM
         const gameGrid = document.getElementById('game-grid');
         const levelDisplay = document.getElementById('level-display');
         const timerDisplay = document.getElementById('timer-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const timeBar = document.getElementById('time-bar');
         const startButton = document.getElementById('start-button');
         const nextLevelButton = document.getElementById('next-level-button');
         const messageBox = document.getElementById('message-box');
@@ -276,7 +304,6 @@
         function playMismatchSound() {
             if (Tone.context.state !== 'running') Tone.start();
             const now = Tone.now();
-            // تم إصلاح الخطأ: تشغيل النغمتين بشكل منفصل وسريع بدلاً من تمرير مصفوفة
             synth.triggerAttackRelease("C4", "32n", now);
             synth.triggerAttackRelease("C#4", "32n", now + 0.03); // تأخير بسيط
         }
@@ -337,7 +364,7 @@
 
 
         // **********************************************
-        // Game Logic (kept largely the same)
+        // Game Logic 
         // **********************************************
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -387,6 +414,11 @@
             cardContainer.appendChild(card);
             gameGrid.appendChild(cardContainer);
         }
+        
+        function updateLivesDisplay() {
+            // يعرض قلوب حمراء للفرص المتبقية وقلوب سوداء/رمادية للفرص الضائعة
+            livesDisplay.textContent = '❤️'.repeat(lives) + '🖤'.repeat(MAX_LIVES - lives);
+        }
 
         function initializeLevel() {
             const levelData = GAME_DATA[currentLevel];
@@ -401,8 +433,16 @@
             totalPairs = levelData.pairs.length;
             matchesFound = 0;
             timeRemaining = levelData.timeLimit;
+            lives = MAX_LIVES; // إعادة تعيين الفرص مع كل مستوى جديد
+            updateLivesDisplay();
+            
             levelDisplay.textContent = currentLevel;
             timerDisplay.textContent = timeRemaining;
+
+            // إعادة ضبط شريط الوقت
+            timeBar.style.width = '100%';
+            timeBar.className = 'bg-green-500 h-full rounded-full transition-all duration-1000 ease-linear';
+            
             gameGrid.innerHTML = '';
             messageBox.textContent = `المستوى ${currentLevel}: لديك ${timeRemaining} ثانية لإيجاد ${totalPairs} أزواج.`;
             
@@ -478,8 +518,19 @@
                 matchesFound++;
                 checkWinCondition();
             } else {
-                unflipCards();
-                messageBox.textContent = 'خطأ. حاول مرة أخرى. 😥';
+                // تقليل الفرص إذا كانت الإجابة خاطئة
+                lives--;
+                updateLivesDisplay();
+                
+                if (lives > 0) {
+                    messageBox.textContent = `خطأ. تبقت لك ${lives} فرص. 😥`;
+                    unflipCards();
+                } else {
+                    messageBox.textContent = 'نفدت الفرص! 💔';
+                    unflipCards(); // استدعاء الوظيفة لإغلاق البطاقات ثم إنهاء اللعبة
+                    clearInterval(timerInterval);
+                    handleGameOver('lives');
+                }
             }
         }
 
@@ -502,14 +553,23 @@
             playMismatchSound(); // تشغيل صوت الفشل
             
             setTimeout(() => {
-                firstCard.classList.remove('is-flipped');
-                secondCard.classList.remove('is-flipped');
+                if (firstCard) firstCard.classList.remove('is-flipped');
+                if (secondCard) secondCard.classList.remove('is-flipped');
                 resetBoard();
+                
+                // التأكد من بقاء اللوحة مقفلة إذا انتهت اللعبة
+                if (lives <= 0 || timeRemaining <= 0) {
+                    lockBoard = true;
+                }
             }, 1200); 
         }
 
         function resetBoard() {
-            [firstCard, secondCard, lockBoard] = [null, null, false];
+            [firstCard, secondCard] = [null, null];
+            // تحرير اللوحة فقط إذا كانت اللعبة لا تزال مستمرة
+            if (lives > 0 && timeRemaining > 0 && matchesFound < totalPairs) {
+                lockBoard = false;
+            }
         }
 
         function checkWinCondition() {
@@ -523,8 +583,11 @@
                 } else {
                     // الفوز النهائي - تشغيل القصاصات والصوت
                     showWinMessage('تهانينا! لقد أتممت جميع المستويات بنجاح! أنت عبقري في العلوم! 🌟', true);
-                    startButton.textContent = `إعادة بدء اللعبة`;
-                    startButton.classList.remove('hidden');
+                    
+                    // إظهار النافذة المنبثقة بعد تأخير بسيط للاستمتاع بالقصاصات
+                    setTimeout(() => {
+                        document.getElementById('win-modal').classList.remove('hidden');
+                    }, 2000);
                 }
             }
         }
@@ -536,25 +599,40 @@
                 timeRemaining--;
                 timerDisplay.textContent = timeRemaining;
 
-                if (timeRemaining <= 10) {
+                // تحديث شريط الوقت
+                const totalTime = GAME_DATA[currentLevel].timeLimit;
+                const percentage = (timeRemaining / totalTime) * 100;
+                timeBar.style.width = `${percentage}%`;
+
+                // تغيير ألوان شريط الوقت والنص عند اقتراب انتهاء الوقت
+                if (percentage <= 25) {
+                    timeBar.classList.replace('bg-green-500', 'bg-red-500');
+                    timeBar.classList.replace('bg-yellow-500', 'bg-red-500');
                     timerDisplay.classList.add('text-red-700'); 
+                } else if (percentage <= 50) {
+                    timeBar.classList.replace('bg-green-500', 'bg-yellow-500');
+                    timerDisplay.classList.remove('text-red-700');
                 } else {
                     timerDisplay.classList.remove('text-red-700');
                 }
 
                 if (timeRemaining <= 0) {
                     clearInterval(timerInterval);
-                    handleGameOver();
+                    timeBar.style.width = '0%';
+                    handleGameOver('time');
                 }
             }, 1000);
         }
 
-        function handleGameOver() {
+        function handleGameOver(reason) {
             lockBoard = true; 
-            showWinMessage(`انتهى الوقت! ⏱️ لم تنجح في المستوى ${currentLevel}. حاول مرة أخرى!`);
             
-            startButton.textContent = `إعادة تشغيل المستوى ${currentLevel}`;
-            startButton.classList.remove('hidden');
+            if (reason === 'time') {
+                showWinMessage(`انتهى الوقت! ⏱️ لم تنجح في المستوى ${currentLevel}.`);
+            } else if (reason === 'lives') {
+                showWinMessage(`نفدت الفرص! 💔 لم تنجح في المستوى ${currentLevel}.`);
+            }
+            
             nextLevelButton.classList.add('hidden');
         }
 
