@@ -18,54 +18,37 @@
         /* New class for the requested font style (Times New Roman or a serif fallback) */
         .font-serif-math {
             font-family: "Times New Roman", Times, serif;
-            /* Note: Times New Roman is a system font, relying on the user's device for availability. */
         }
-        .shape-draggable {
-            cursor: grab;
-            transition: transform 0.2s, opacity 0.2s, background-color 0.3s;
-            text-align: center;
-            padding: 2px; /* Reduced padding slightly */
-            font-size: 0.75rem; /* Reduced font size from 0.875rem (sm) to 0.75rem (xs) */
-            line-height: 1.1; /* Adjusted line height for tight fit */
-            pointer-events: none; /* Default to locked */
-            opacity: 0.5;
-            display: flex; /* Ensure centering works well */
-            align-items: center;
-            justify-content: center;
-        }
-        .shape-draggable.unlocked {
-            cursor: grab;
-            opacity: 1;
-            pointer-events: auto; /* Allow dragging */
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); /* Blue glow when unlocked */
-        }
-        .shape-draggable:active {
-            cursor: grabbing;
-        }
+        
         .robot-part {
             position: absolute;
-            background-color: #d1d5db; /* Default light gray for target */
-            border: 3px dashed #6b7280;
-            transition: background-color 0.4s, border-color 0.4s, box-shadow 0.4s;
-            font-size: 0.875rem; /* Ensure target label is readable (text-sm) */
-        }
-        .robot-part.drag-over {
-            border-color: #4f46e5;
-            background-color: #e0e7ff;
-        }
-        .robot-part.assembled {
-            border-style: solid;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .shape-container {
+            background-color: #e5e7eb; /* Default light gray for target (locked) */
+            border: 3px dashed #9ca3af;
+            transition: all 0.5s ease-in-out;
+            font-size: 0.875rem; 
             display: flex;
-            flex-wrap: wrap; 
-            gap: 8px; 
             align-items: center;
             justify-content: center;
-            border-radius: 0.75rem;
-            min-height: 10rem; /* Increased height for 8 shapes */
+            color: #6b7280;
+            font-weight: bold;
         }
+        
+        /* Active target style (current question) */
+        .robot-part.active-target {
+            border-color: #f59e0b; /* Amber border */
+            background-color: #fef3c7; /* Light amber bg */
+            animation: pulse-border 1.5s infinite;
+            color: #d97706;
+        }
+
+        .robot-part.assembled {
+            border-style: solid;
+            border-width: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            color: white;
+            z-index: 10;
+        }
+
         /* Custom styles for shapes sizes */
         .shape-square { width: 80px; height: 80px; }
         .shape-rect-lg { width: 140px; height: 200px; }
@@ -91,14 +74,21 @@
         #target-foot-l { top: 425px; left: 90px; }
         #target-foot-r { top: 425px; left: 150px; }
         
-        /* Animation for correct answer */
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        /* Animation for active target */
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
         }
-        .correct-pulse {
-            animation: pulse-green 1s ease-out;
+
+        /* Animation for correct answer fill */
+        @keyframes flash-success {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.1); filter: brightness(1.2); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        .animate-success {
+            animation: flash-success 0.5s ease-out;
         }
         
         .question-card {
@@ -108,6 +98,51 @@
             padding: 2rem;
             border: 4px solid #3b82f6; /* Blue border */
             min-height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Timer Bar Styles */
+        .timer-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #e5e7eb;
+            z-index: 20;
+        }
+        
+        .timer-bar {
+            height: 100%;
+            background-color: #10b981; /* Green start */
+            transition: width 1s linear, background-color 0.5s ease;
+            width: 100%;
+        }
+
+        /* Heart Animation */
+        @keyframes heart-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        .heart-icon {
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .heart-lost {
+            filter: grayscale(100%);
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+
+        /* Modal Animation */
+        @keyframes modal-pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .modal-content {
+            animation: modal-pop 0.3s ease-out forwards;
         }
     </style>
 </head>
@@ -128,232 +163,220 @@
         
         const PART_KEYS = Object.keys(SHAPES_DATA);
         const TOTAL_PARTS = PART_KEYS.length;
+        const TIME_LIMIT_PER_QUESTION = 45; // 45 seconds
 
         let gameState = {
-            step: 0, // 0: Start, 1: Quiz & Assembly, 2: Complete
+            step: 0, // 0: Start, 1: Playing, 2: Win, 3: Game Over
             assembledCount: 0,
-            parts: {}, // To store dimensions, status, and whether it's unlocked
+            parts: {}, 
             score: 0,
             currentQuestionIndex: 0, 
-            questions: []
+            questions: [],
+            isProcessing: false,
+            lives: 3,
+            timer: null,
+            timeLeft: TIME_LIMIT_PER_QUESTION
         };
         
-        let draggedElement = null;
-        let isAudioInitialized = false; // لتتبع حالة تهيئة الصوت
+        let isAudioInitialized = false;
 
         // --- Tone.js Sound Setup ---
         
-        // سينثسايزر بسيط للإجابة الصحيحة (صوت رنين/صفير)
-        const correctSynth = new Tone.MembraneSynth({
-            "envelope" : {
-                "attack" : 0.005,
-                "decay" : 0.2,
-                "sustain" : 0.0,
-            },
-            "octaves" : 10,
-            "pitchDecay" : 0.01
+        const correctSynth = new Tone.MembraneSynth().toDestination();
+        const wrongSynth = new Tone.Synth({
+            oscillator: { type: "sawtooth" },
+            envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 }
         }).toDestination();
-        
-        // سينثسايزر للأصوات الاحتفالية (الفوز باللعبة)
-        const winSynth = new Tone.PolySynth(Tone.Synth, {
-            oscillator: { type: "square" },
-            envelope: {
-                attack: 0.02,
-                decay: 0.1,
-                sustain: 0.0,
-            }
-        }).toDestination();
+        const winSynth = new Tone.PolySynth(Tone.Synth).toDestination();
 
-        /**
-         * يبدأ سياق الصوت عند أول تفاعل للمستخدم (مهم للمتصفحات الحديثة).
-         */
         function startAudioContext() {
             if (!isAudioInitialized) {
                 Tone.start();
                 isAudioInitialized = true;
-                // إزالة المستمع بعد التفعيل
                 document.body.removeEventListener('click', startAudioContext);
                 document.body.onclick = null;
             }
         }
         
-        /**
-         * يشغل صوت الإجابة الصحيحة (مكافئ لـ correct.mp3).
-         */
         function playCorrectSound() {
             if (isAudioInitialized) {
                 correctSynth.triggerAttackRelease("C5", "8n");
-                correctSynth.triggerAttackRelease("E5", "8n", "+0.05");
-                correctSynth.triggerAttackRelease("G5", "8n", "+0.1");
+                correctSynth.triggerAttackRelease("E5", "8n", "+0.1");
             }
         }
 
-        /**
-         * يشغل صوت الفوز باللعبة (مكافئ لـ win.wav).
-         */
-        function playWinSound() {
+        function playWrongSound() {
             if (isAudioInitialized) {
-                // تتابع نغمات احتفالية (C-E-G-C)
-                winSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n");
-                winSynth.triggerAttackRelease("C6", "2n", Tone.now() + 0.5);
+                wrongSynth.triggerAttackRelease("A2", "8n");
+                wrongSynth.triggerAttackRelease("G2", "8n", "+0.1");
             }
         }
+
+        function playWinSound() {
+            if (isAudioInitialized) {
+                winSynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "2n");
+            }
+        }
+
+        // --- Timer Functions ---
+
+        const startTimer = () => {
+            clearInterval(gameState.timer);
+            gameState.timeLeft = TIME_LIMIT_PER_QUESTION;
+            updateTimerUI();
+            
+            gameState.timer = setInterval(() => {
+                if (gameState.step !== 1 || gameState.isProcessing) return; // Pause if processing or not playing
+
+                gameState.timeLeft--;
+                updateTimerUI();
+
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timer);
+                    handleTimeOut();
+                }
+            }, 1000);
+        };
+
+        const stopTimer = () => {
+            clearInterval(gameState.timer);
+        };
+
+        const updateTimerUI = () => {
+            const timerBar = document.getElementById('timer-bar');
+            if (timerBar) {
+                const percentage = (gameState.timeLeft / TIME_LIMIT_PER_QUESTION) * 100;
+                timerBar.style.width = `${percentage}%`;
+                
+                // Color changes based on urgency
+                if (percentage > 50) {
+                    timerBar.style.backgroundColor = '#10b981'; // Green
+                } else if (percentage > 20) {
+                    timerBar.style.backgroundColor = '#f59e0b'; // Yellow
+                } else {
+                    timerBar.style.backgroundColor = '#ef4444'; // Red
+                }
+            }
+        };
+
+        const handleTimeOut = () => {
+            playWrongSound();
+            loseLife("انتهى الوقت!");
+        };
 
         // --- Core Functions ---
 
-        /**
-         * Generates random dimensions for the parts.
-         */
         const generateDimensions = () => {
-            // Generates dimensions for all 8 parts
-            // *** تم التعديل هنا: لزيادة التحدي في الضرب (لجعلها ضرب عددين أكبر) ***
-            const bodyL = Math.floor(Math.random() * 10) + 10; // الطول: 10-19 وحدة (رقمين)
-            const bodyW = Math.floor(Math.random() * 5) + 10; // العرض: 10-14 وحدة (رقمين)
-            // ******************************************************************
+            const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+            const usedDims = new Set();
 
-            const headS = Math.floor(Math.random() * 5) + 6; // 6-10
-            const armL = Math.floor(Math.random() * 3) + 7; // 7-9
-            const armW = Math.floor(Math.random() * 2) + 2; // 2-3
-            const legL = Math.floor(Math.random() * 4) + 10; // 10-13
-            const legW = Math.floor(Math.random() * 2) + 3;  // 3-4
-            const footL = Math.floor(Math.random() * 3) + 5; // 5-7
-            const footW = Math.floor(Math.random() * 2) + 8; // 8-9
+            const getUniqueDims = (minL, maxL, minW, maxW) => {
+                let l, w, key, attempts = 0;
+                do {
+                    l = rand(minL, maxL);
+                    w = rand(minW, maxW);
+                    key = `${l}-${w}`;
+                    attempts++;
+                } while ((usedDims.has(key) || l === w) && attempts < 20);
+                usedDims.add(key);
+                return { l, w };
+            };
+            
+            const getUniqueSquare = (min, max) => {
+                 let s, key, attempts = 0;
+                 do {
+                     s = rand(min, max);
+                     key = `${s}-${s}`;
+                     attempts++;
+                 } while (usedDims.has(key) && attempts < 20);
+                 usedDims.add(key);
+                 return s;
+            }
+
+            const headS = getUniqueSquare(5, 12); 
+            const body = getUniqueDims(12, 20, 8, 15);
+            const armL = getUniqueDims(8, 14, 2, 5);
+            const armR = getUniqueDims(8, 14, 2, 5);
+            const legL = getUniqueDims(12, 18, 3, 6);
+            const legR = getUniqueDims(12, 18, 3, 6); 
+            const footL = getUniqueDims(5, 9, 6, 10);
+            const footR = getUniqueDims(5, 9, 6, 10);
 
             gameState.parts = {
-                'head': { s: headS, assembled: false, unlocked: false, color: SHAPES_DATA['head'].color, correct: false },
-                'body': { l: bodyL, w: bodyW, assembled: false, unlocked: false, color: SHAPES_DATA['body'].color, correct: false },
-                'arm-l': { l: armL, w: armW, assembled: false, unlocked: false, color: SHAPES_DATA['arm-l'].color, correct: false },
-                'arm-r': { l: armL, w: armW, assembled: false, unlocked: false, color: SHAPES_DATA['arm-r'].color, correct: false },
-                'leg-l': { l: legL, w: legW, assembled: false, unlocked: false, color: SHAPES_DATA['leg-l'].color, correct: false },
-                'leg-r': { l: legL, w: legW, assembled: false, unlocked: false, color: SHAPES_DATA['leg-r'].color, correct: false },
-                'foot-l': { l: footL, w: footW, assembled: false, unlocked: false, color: SHAPES_DATA['foot-l'].color, correct: false },
-                'foot-r': { l: footL, w: footW, assembled: false, unlocked: false, color: SHAPES_DATA['foot-r'].color, correct: false },
+                'head': { s: headS, assembled: false, color: SHAPES_DATA['head'].color },
+                'body': { l: body.l, w: body.w, assembled: false, color: SHAPES_DATA['body'].color },
+                'arm-l': { l: armL.l, w: armL.w, assembled: false, color: SHAPES_DATA['arm-l'].color },
+                'arm-r': { l: armR.l, w: armR.w, assembled: false, color: SHAPES_DATA['arm-r'].color },
+                'leg-l': { l: legL.l, w: legL.w, assembled: false, color: SHAPES_DATA['leg-l'].color },
+                'leg-r': { l: legR.l, w: legR.w, assembled: false, color: SHAPES_DATA['leg-r'].color },
+                'foot-l': { l: footL.l, w: footL.w, assembled: false, color: SHAPES_DATA['foot-l'].color },
+                'foot-r': { l: footR.l, w: footR.w, assembled: false, color: SHAPES_DATA['foot-r'].color },
             };
         };
 
-        /**
-         * Generates the calculation challenges for all 8 parts.
-         */
         const generateQuestions = () => {
             const P = gameState.parts;
-            
             gameState.questions = [
-                // 1. Head (Square - Perimeter)
                 { partKey: 'head', metric: 'محيط المربع', shape: 'مربع', formula: 'المحيط = طول الضلع × ٤', dimensions: `طول الضلع: ${P['head'].s} وحدة`, correctAnswer: P['head'].s * 4, maxScore: 5 },
-                // 2. Body (Rectangle - Area) - التحدي الأكبر للضرب في عددين
                 { partKey: 'body', metric: 'مساحة المستطيل', shape: 'مستطيل', formula: 'المساحة = الطول × العرض', dimensions: `الطول: ${P['body'].l} وحدة، العرض: ${P['body'].w} وحدة`, correctAnswer: P['body'].l * P['body'].w, maxScore: 5 },
-                // 3. Arm Left (Rectangle Small - Area)
                 { partKey: 'arm-l', metric: 'مساحة المستطيل', shape: 'مستطيل', formula: 'المساحة = الطول × العرض', dimensions: `الطول: ${P['arm-l'].l} وحدة، العرض: ${P['arm-l'].w} وحدة`, correctAnswer: P['arm-l'].l * P['arm-l'].w, maxScore: 5 },
-                // 4. Arm Right (Rectangle Small - Perimeter)
                 { partKey: 'arm-r', metric: 'محيط المستطيل', shape: 'مستطيل', formula: 'المحيط = ٢ × (الطول + العرض)', dimensions: `الطول: ${P['arm-r'].l} وحدة، العرض: ${P['arm-r'].w} وحدة`, correctAnswer: 2 * (P['arm-r'].l + P['arm-r'].w), maxScore: 5 },
-                // 5. Leg Left (Rectangle Leg - Perimeter)
                 { partKey: 'leg-l', metric: 'محيط المستطيل', shape: 'مستطيل', formula: 'المحيط = ٢ × (الطول + العرض)', dimensions: `الطول: ${P['leg-l'].l} وحدة، العرض: ${P['leg-l'].w} وحدة`, correctAnswer: 2 * (P['leg-l'].l + P['leg-l'].w), maxScore: 5 },
-                // 6. Leg Right (Rectangle Leg - Area)
                 { partKey: 'leg-r', metric: 'مساحة المستطيل', shape: 'مستطيل', formula: 'المساحة = الطول × العرض', dimensions: `الطول: ${P['leg-r'].l} وحدة، العرض: ${P['leg-r'].w} وحدة`, correctAnswer: P['leg-r'].l * P['leg-r'].w, maxScore: 5 },
-                // 7. Foot Left (Rectangle Foot - Area)
                 { partKey: 'foot-l', metric: 'مساحة المستطيل', shape: 'مستطيل', formula: 'المساحة = الطول × العرض', dimensions: `الطول: ${P['foot-l'].l} وحدة، العرض: ${P['foot-l'].w} وحدة`, correctAnswer: P['foot-l'].l * P['foot-l'].w, maxScore: 5 },
-                // 8. Foot Right (Rectangle Foot - Perimeter)
                 { partKey: 'foot-r', metric: 'محيط المستطيل', shape: 'مستطيل', formula: 'المحيط = ٢ × (الطول + العرض)', dimensions: `الطول: ${P['foot-r'].l} وحدة، العرض: ${P['foot-r'].w} وحدة`, correctAnswer: 2 * (P['foot-r'].l + P['foot-r'].w), maxScore: 5 },
             ];
-            gameState.currentQuestionIndex = 0; // Start with the first question
+            gameState.currentQuestionIndex = 0; 
         }
 
-        // --- Drag and Drop Handlers ---
-        
-        window.dragStart = (e) => {
-            const draggableEl = e.currentTarget;
-            const partKey = draggableEl.dataset.part;
+        // --- Logic: Life Lost ---
+        const loseLife = (reason = "إجابة خاطئة") => {
+            gameState.lives--;
+            updateHeaderUI(); // Update hearts
+            
+            const feedbackEl = document.getElementById('calculation-feedback');
+            const inputField = document.getElementById('calculation-input');
 
-            // Only allow dragging if the part is unlocked
-            if (gameState.parts[partKey] && gameState.parts[partKey].unlocked && !gameState.parts[partKey].assembled) {
-                draggedElement = draggableEl; 
-                e.dataTransfer.setData('text/plain', partKey);
-                e.dataTransfer.effectAllowed = 'move';
-                draggableEl.classList.add('opacity-50', 'ring-4', 'ring-indigo-400');
-            } else {
-                 e.preventDefault(); // Prevent dragging if locked
-                 // Optional: Add a visual feedback for locked status
-                 draggableEl.classList.add('ring-4', 'ring-red-500');
-                 setTimeout(() => draggableEl.classList.remove('ring-4', 'ring-red-500'), 500);
-            }
-        };
-
-        window.dragEnd = (e) => {
-            if (draggedElement) {
-                draggedElement.classList.remove('opacity-50', 'ring-4', 'ring-indigo-400');
-                draggedElement = null; 
-            }
-        };
-
-        window.dragOver = (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            e.currentTarget.classList.add('drag-over');
-        };
-
-        window.dragLeave = (e) => {
-            e.currentTarget.classList.remove('drag-over');
-        };
-
-        window.dropItem = (e, targetKey) => {
-            e.preventDefault();
-            e.currentTarget.classList.remove('drag-over');
-
-            const partKey = e.dataTransfer.getData('text/plain');
-            const targetId = e.currentTarget.id;
-
-            // Check if the dragged part matches the target area AND is unlocked
-            if (SHAPES_DATA[partKey] && SHAPES_DATA[partKey].targetId === targetId && gameState.parts[partKey].unlocked && !gameState.parts[partKey].assembled) {
-                
-                // 1. Mark as assembled
-                gameState.parts[partKey].assembled = true;
-                gameState.assembledCount++;
-
-                // 2. Hide the draggable shape and remove unlocked class
-                const draggableEl = document.getElementById(`shape-drag-${partKey}`);
-                if (draggableEl) {
-                    draggableEl.classList.add('hidden');
-                    draggableEl.classList.remove('unlocked');
+            if (gameState.lives <= 0) {
+                // Game Over
+                stopTimer();
+                gameState.step = 3; // Game Over state
+                if(feedbackEl) {
+                    feedbackEl.innerHTML = `❌ ${reason}. انتهت المحاولات!`;
+                    feedbackEl.className = 'mt-4 text-center font-bold text-red-600';
                 }
-
-                // 3. Style the target area to show the assembled part
-                const targetEl = e.currentTarget;
-                targetEl.classList.add('assembled');
-                targetEl.style.backgroundColor = gameState.parts[partKey].color;
-                targetEl.style.borderColor = gameState.parts[partKey].color;
-                targetEl.style.borderWidth = '4px';
-
-                // 4. Move to the next question/part challenge
-                if (gameState.assembledCount < TOTAL_PARTS) {
-                    gameState.currentQuestionIndex = gameState.assembledCount; // Next question index is the current assembly count
-                } else {
-                    gameState.step = 2; // All parts assembled and calculated
-                    playWinSound(); // *** تشغيل صوت الفوز ***
+                setTimeout(() => updateUI(), 1000);
+            } else {
+                // Retry
+                if(feedbackEl) {
+                    feedbackEl.innerHTML = `❌ ${reason}. خسرت قلباً! (متبقي ${gameState.lives})`;
+                    feedbackEl.className = 'mt-4 text-center font-bold text-red-600 animate-pulse';
                 }
                 
-                updateUI();
-            } else if (gameState.parts[partKey].assembled) {
-                 // Do nothing if already assembled
-            } else {
-                // Wrong target feedback
-                e.currentTarget.classList.add('ring-4', 'ring-red-500');
-                setTimeout(() => e.currentTarget.classList.remove('ring-4', 'ring-red-500'), 500);
+                // Clear input and reset timer for another try
+                if(inputField) {
+                    inputField.value = '';
+                    inputField.focus();
+                }
+                
+                // Brief pause then reset timer
+                stopTimer();
+                setTimeout(() => {
+                    if (gameState.step === 1) startTimer();
+                    if(feedbackEl) feedbackEl.textContent = "";
+                }, 1500);
             }
         };
 
         // --- Calculation Logic ---
 
-        /**
-         * Logic to submit the answer for the current question.
-         */
         window.submitAnswer = () => {
-            if (gameState.assembledCount >= TOTAL_PARTS) return; // Should not happen
+            if (gameState.isProcessing || gameState.step !== 1) return;
 
             const question = gameState.questions[gameState.currentQuestionIndex];
             const inputField = document.getElementById('calculation-input');
             const feedbackEl = document.getElementById('calculation-feedback');
             
-            // We use Math.round and compare to handle any floating point inaccuracies if any are introduced later.
             const userAnswer = parseInt(inputField.value.trim(), 10);
             
             if (isNaN(userAnswer)) {
@@ -364,55 +387,72 @@
                 return;
             }
             
-            // Check if the integer part of the user answer matches the correct answer
             if (userAnswer === Math.round(question.correctAnswer)) {
-                
-                playCorrectSound(); // *** تشغيل صوت الإجابة الصحيحة ***
+                // Correct
+                stopTimer();
+                gameState.isProcessing = true;
+                playCorrectSound();
 
-                // Correct Answer: Unlock the part!
                 gameState.score += question.maxScore;
-                gameState.parts[question.partKey].correct = true;
-                gameState.parts[question.partKey].unlocked = true;
+                gameState.parts[question.partKey].assembled = true; 
+                gameState.assembledCount++;
 
-                // Visual Feedback
-                feedbackEl.textContent = `🎉 أحسنت! الإجابة صحيحة. تم تحرير جزء "${SHAPES_DATA[question.partKey].label}"!`;
-                feedbackEl.classList.remove('text-red-600', 'text-indigo-600');
-                feedbackEl.classList.add('text-green-600', 'font-bold');
-
-                // Disable input and button
+                feedbackEl.innerHTML = `🎉 أحسنت! الإجابة صحيحة.`;
+                feedbackEl.className = 'mt-4 text-center font-bold text-green-600 text-lg';
                 inputField.disabled = true;
                 document.getElementById('submit-btn').classList.add('hidden');
 
-                // Show assembly instruction
-                document.getElementById('assembly-instruction').classList.remove('hidden');
-                document.getElementById('assembly-instruction').textContent = `الآن، اسحب جزء ${SHAPES_DATA[question.partKey].label.split('(')[0].trim()} إلى مكانه في الروبوت.`;
+                updateUI(); // Updates the visual robot
 
-                // Add pulse to the unlocked shape
-                const shapeEl = document.getElementById(`shape-drag-${question.partKey}`);
-                if (shapeEl) {
-                    shapeEl.classList.add('unlocked', 'correct-pulse');
-                }
+                const targetPartEl = document.getElementById(SHAPES_DATA[question.partKey].targetId);
+                if(targetPartEl) targetPartEl.classList.add('animate-success');
 
-                // Add pulse to the target area
-                 const targetEl = document.getElementById(SHAPES_DATA[question.partKey].targetId);
-                 if(targetEl) {
-                     targetEl.classList.add('correct-pulse');
-                 }
-
+                setTimeout(() => {
+                    if (gameState.assembledCount < TOTAL_PARTS) {
+                        gameState.currentQuestionIndex++;
+                        gameState.isProcessing = false;
+                        updateUI();
+                        startTimer(); // Start timer for next question
+                    } else {
+                        gameState.step = 2; // Win
+                        gameState.isProcessing = false;
+                        playWinSound();
+                        updateUI();
+                    }
+                }, 1500);
 
             } else {
                 // Wrong Answer
-                gameState.score = Math.max(0, gameState.score - 1); 
-                feedbackEl.textContent = `❌ إجابة خاطئة. حاول مجدداً! (خسرت نقطة)`;
-                feedbackEl.classList.remove('text-green-600', 'text-indigo-600');
-                feedbackEl.classList.add('text-red-600');
-                // Re-enable the submit button in case it was hidden accidentally
-                document.getElementById('submit-btn').classList.remove('hidden');
+                playWrongSound();
+                loseLife("إجابة خاطئة");
             }
-            updateUI(); // Re-render to update score and shape status
         }
         
         // --- UI Rendering ---
+
+        // Helper to generate hearts HTML
+        const getHeartsHTML = () => {
+            let html = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < gameState.lives) {
+                    html += '<span class="text-2xl text-red-500 mx-1 heart-icon">❤️</span>';
+                } else {
+                    html += '<span class="text-2xl text-gray-300 mx-1 heart-icon heart-lost">💔</span>';
+                }
+            }
+            return html;
+        };
+
+        const updateHeaderUI = () => {
+            const scoreEl = document.getElementById('score-value');
+            if (scoreEl) scoreEl.textContent = gameState.score;
+
+            const stepEl = document.getElementById('step-name');
+            if (stepEl) stepEl.textContent = getCurrentStepName();
+
+            const heartsContainer = document.getElementById('hearts-container');
+            if (heartsContainer) heartsContainer.innerHTML = getHeartsHTML();
+        };
 
         const renderStep1QuizAndAssembly = () => {
             const container = document.getElementById('game-content');
@@ -420,39 +460,10 @@
             const partToUnlock = SHAPES_DATA[question.partKey];
             const partData = gameState.parts[question.partKey];
 
-            // 1. Draggable Shapes (Toolbox)
-            const draggableShapes = PART_KEYS.map(key => {
-                const data = SHAPES_DATA[key];
-                const part = gameState.parts[key];
-                
-                if (part.assembled) return ''; // Hide if assembled
-                
-                let shapeClass = '';
-                if (data.type === 'rectangle') shapeClass = 'shape-rect-lg';
-                if (data.type === 'square') shapeClass = 'shape-square';
-                if (data.type === 'rectangle-small') shapeClass = 'shape-rect-arm';
-                if (data.type === 'rectangle-leg') shapeClass = 'shape-rect-leg';
-                if (data.type === 'rectangle-foot') shapeClass = 'shape-rect-foot';
-
-                // Add 'unlocked' class if the part has been successfully calculated
-                const unlockedClass = part.unlocked ? 'unlocked' : 'bg-gray-400';
-                
-                const labelText = data.label.split('(')[0].trim(); // Get only the name
-
-                return `
-                    <div id="shape-drag-${key}" data-part="${key}" draggable="true" 
-                         ondragstart="dragStart(event)" ondragend="dragEnd(event)"
-                         class="shape-draggable ${shapeClass} bg-indigo-500 hover:bg-indigo-600 text-white flex items-center justify-center font-bold rounded-lg shadow-md transition-all ${unlockedClass}">
-                        ${labelText}
-                    </div>
-                `;
-            }).join('');
-
-            // 2. Robot Assembly Area (Targets)
+            // 1. Robot Targets
             const robotTargets = PART_KEYS.map(key => {
                 const data = SHAPES_DATA[key];
                 const part = gameState.parts[key];
-
                 let shapeClass = '';
                 if (data.type === 'rectangle') shapeClass = 'shape-rect-lg';
                 if (data.type === 'square') shapeClass = 'shape-square';
@@ -461,92 +472,74 @@
                 if (data.type === 'rectangle-foot') shapeClass = 'shape-rect-foot';
 
                 const assembledClass = part.assembled ? 'assembled' : '';
-                const styleAttr = part.assembled ? `style="background-color: ${part.color}; border-color: ${part.color}; border-width: 4px;"` : '';
+                const targetClass = (!part.assembled && key === question.partKey) ? 'active-target' : '';
+                const styleAttr = part.assembled ? `style="background-color: ${part.color}; border-color: ${part.color};"` : '';
+                let content = data.label.split('(')[0].trim();
+                if (!part.assembled && key === question.partKey) content = "?";
 
-                return `
-                     <div id="${data.targetId}" data-part-target="${key}" 
-                         ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropItem(event, '${key}')"
-                         class="robot-part ${shapeClass} flex items-center justify-center ${assembledClass}" ${styleAttr}>
-                         ${data.label.split('(')[0].trim()}
-                    </div>
-                `;
+                return `<div id="${data.targetId}" class="robot-part ${shapeClass} ${assembledClass} ${targetClass}" ${styleAttr}>${content}</div>`;
             }).join('');
 
-            // 3. Calculation Card
+            // 2. Calculation Card
             const calculationCard = `
-                <div class="question-card lg:w-full">
-                    <h3 class="text-2xl font-black text-blue-700 mb-4">
-                        💡 تحدي القياس ${gameState.currentQuestionIndex + 1} من ${TOTAL_PARTS}
-                    </h3>
-                    <p class="text-lg text-gray-700 mb-2">
-                        **جزء الروبوت المطلوب تحريره:** <span class="font-bold text-red-600">${partToUnlock.label.split('(')[0].trim()}</span>
-                    </p>
-                    <p class="text-md text-gray-600 mb-4">
-                        **الأبعاد:** <span class="font-mono text-lg text-red-600">${question.dimensions}</span>
-                    </p>
+                <div class="question-card h-full flex flex-col justify-center relative">
+                    <!-- Timer Bar -->
+                    <div class="timer-container">
+                        <div id="timer-bar" class="timer-bar"></div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h3 class="text-2xl font-black text-blue-700 mb-2">
+                            💡 السؤال ${gameState.currentQuestionIndex + 1} من ${TOTAL_PARTS}
+                        </h3>
+                        <p class="text-lg text-gray-700 mb-4">
+                            ركب جزء: <span class="font-bold text-red-600">${partToUnlock.label.split('(')[0].trim()}</span>
+                        </p>
+                    </div>
 
-                    <!-- APPLYING THE NEW FONT CLASS HERE: font-serif-math -->
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+                         <p class="text-md text-gray-700 mb-1">الأبعاد:</p>
+                         <p class="font-mono text-xl text-indigo-700 font-bold" dir="ltr">${question.dimensions}</p>
+                    </div>
+
                     <div class="bg-blue-50 p-4 rounded-lg mb-6 border-l-4 border-blue-500 font-serif-math">
-                        <p class="font-bold text-xl text-blue-800 mb-2">المطلوب:</p>
-                        <!-- text-lg for formula font size, removed font-mono class -->
-                        <p class="text-lg text-blue-900">احسب **${question.metric}** باستخدام القانون:
-                             <span class="font-bold">
+                        <p class="font-bold text-lg text-blue-800 mb-2">القانون:</p>
+                        <p class="text-lg text-blue-900">
                              ${question.shape === 'مربع' 
-                                 ? (question.metric.includes('مساحة') 
-                                    ? 'المساحة = طول الضلع × طول الضلع' 
-                                    : 'المحيط = طول الضلع × ٤')
-                                 : (question.metric.includes('مساحة') 
-                                    ? 'المساحة = الطول × العرض' 
-                                    : 'المحيط = ٢ × (الطول + العرض)')
+                                 ? (question.metric.includes('مساحة') ? 'المساحة = الضلع × الضلع' : 'المحيط = الضلع × ٤')
+                                 : (question.metric.includes('مساحة') ? 'المساحة = الطول × العرض' : 'المحيط = ٢ × (الطول + العرض)')
                              }
-                             </span>
                         </p>
                     </div>
 
                     <label for="calculation-input" class="block text-lg font-medium text-gray-800 mb-2">
-                        ما هي قيمة ${question.metric}؟ (أدخل رقماً صحيحاً)
+                        احسب <span class="font-bold">${question.metric}</span>:
                     </label>
-                    <input type="number" id="calculation-input" min="1" class="w-full p-3 border-2 border-gray-300 rounded-lg text-2xl text-center focus:border-indigo-500 focus:ring-indigo-500 transition" placeholder="أدخل الإجابة هنا..." ${partData.unlocked ? 'disabled' : ''}/>
+                    <div class="flex gap-2">
+                        <input type="number" id="calculation-input" min="1" 
+                            class="flex-1 p-3 border-2 border-gray-300 rounded-lg text-2xl text-center focus:border-indigo-500 focus:ring-indigo-500 transition" 
+                            placeholder="النتيجة" 
+                            ${partData.assembled ? 'disabled' : ''}
+                            onkeydown="if(event.key === 'Enter') submitAnswer()"
+                        />
+                    </div>
                     
-                    <div class="mt-6">
-                        <button onclick="submitAnswer()" id="submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition duration-150 shadow-md ${partData.unlocked ? 'hidden' : ''}">
-                            تأكيد الإجابة والتحرير
+                    <div class="mt-4">
+                        <button onclick="submitAnswer()" id="submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition duration-150 shadow-md ${partData.assembled ? 'hidden' : ''}">
+                            تأكيد وتركيب
                         </button>
                     </div>
                     
-                    <p id="calculation-feedback" class="mt-4 text-center h-6 font-medium text-indigo-600"></p>
-                     <p id="assembly-instruction" class="mt-4 text-center text-lg font-black text-purple-700 p-2 border-dashed border-2 border-purple-300 rounded-lg ${!partData.unlocked ? 'hidden' : ''}">
-                         الآن، اسحب جزء ${partToUnlock.label.split('(')[0].trim()} إلى مكانه في الروبوت.
-                    </p>
+                    <div id="calculation-feedback" class="h-8"></div>
                 </div>
             `;
 
-
             container.innerHTML = `
-                <div class="flex flex-col lg:flex-row gap-8">
-                    <!-- Toolbox and Quiz -->
-                    <div class="lg:w-1/2 space-y-8">
-                        <!-- Calculation Challenge Card -->
-                        ${calculationCard}
-
-                        <!-- Toolbox (Draggable Shapes) -->
-                        <div class="p-6 bg-white rounded-xl shadow-lg border-r-4 border-indigo-500">
-                            <h3 class="text-xl font-bold text-gray-800 mb-4">⚙️ صندوق الأدوات (الأجزاء المقفلة/المحررة)</h3>
-                            <div class="flex flex-wrap gap-4 shape-container">
-                                ${draggableShapes}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Robot Assembly Area (Targets) -->
-                    <div class="lg:w-1/2 p-6 bg-gray-100 rounded-xl shadow-inner flex items-center justify-center">
-                        <div id="robot-assembly">
-                            ${robotTargets}
-                            <!-- Assembly Count -->
-                            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-lg font-bold text-gray-700">
-                                تم تجميع: ${gameState.assembledCount} من ${TOTAL_PARTS}
-                            </div>
-                        </div>
+                <div class="flex flex-col lg:flex-row gap-8 h-full">
+                    <div class="lg:w-5/12">${calculationCard}</div>
+                    <div class="lg:w-7/12 p-6 bg-white rounded-xl shadow-inner border-2 border-gray-100 flex items-center justify-center relative">
+                        <h4 class="absolute top-4 right-4 text-gray-400 font-bold text-sm">منطقة التجميع</h4>
+                        <div id="robot-assembly">${robotTargets}</div>
                     </div>
                 </div>
             `;
@@ -554,95 +547,135 @@
         
         const renderStep2Complete = () => {
             const container = document.getElementById('game-content');
-            const finalScore = gameState.score;
             
+            // 1. Render the Success Screen (WITHOUT Play Again Button)
             container.innerHTML = `
-                <div class="text-center p-10 bg-green-100 rounded-xl shadow-2xl">
-                    <span class="text-8xl">🤖🎉</span>
-                    <h2 class="text-4xl font-black text-green-700 mt-4 mb-2">مهمة البناء والقياس اكتملت بنجاح!</h2>
-                    <p class="text-xl text-gray-700">لقد نجحت في تحدي 8 مسائل رياضية وتجميع الروبوت بالكامل.</p>
-                    <p class="text-3xl font-extrabold text-indigo-600 mt-4">نقاطك الإجمالية: ${finalScore}</p>
-                    
-                    <button onclick="initializeGame()" class="mt-8 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg transition transform hover:scale-105">
-                        بناء روبوت جديد (تحدي جديد)
-                    </button>
+                <div class="text-center p-10 bg-green-50 rounded-xl shadow-inner border-2 border-green-200">
+                    <span class="text-8xl block mb-4 animate-bounce">🤖</span>
+                    <h2 class="text-4xl font-black text-green-700 mb-4">تم اكتمال الروبوت!</h2>
+                    <p class="text-xl text-gray-700 mb-6">أداء رائع! لقد حافظت على ${gameState.lives} قلوب.</p>
+                    <div class="bg-white inline-block px-8 py-4 rounded-lg shadow-md mb-8">
+                        <p class="text-gray-500 text-sm mb-1">النقاط النهائية</p>
+                        <p class="text-5xl font-extrabold text-indigo-600">${gameState.score}</p>
+                    </div>
+                    <!-- Play Again Button Removed -->
+                </div>
+            `;
+
+            // 2. Append the Modal (Popup) with the Reward Link
+            // We use standard DOM methods to ensure it's appended correctly on top
+            if (!document.getElementById('reward-modal')) {
+                const modal = document.createElement('div');
+                modal.id = 'reward-modal';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm';
+                modal.innerHTML = `
+                    <div class="modal-content bg-white p-8 rounded-2xl shadow-2xl text-center max-w-lg mx-4 border-4 border-yellow-400 relative">
+                        <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 text-6xl">🏆</div>
+                        <h2 class="text-3xl font-black text-gray-800 mt-8 mb-4">أحسنت يا بطل!</h2>
+                        <p class="text-gray-600 mb-8 text-lg font-bold">لقد نجحت في بناء الروبوت وحل جميع المسائل.</p>
+                        
+                        <a href="https://talented-nation.github.io/database/reward3.html" 
+                           class="block w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-bold py-4 px-6 rounded-xl text-xl shadow-lg transition transform hover:scale-105 hover:shadow-xl">
+                            اضغط هنا لاستلام الجائزة 🎁
+                        </a>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+        };
+
+        const renderStep3GameOver = () => {
+            const container = document.getElementById('game-content');
+            container.innerHTML = `
+                <div class="text-center p-10 bg-red-50 rounded-xl shadow-inner border-2 border-red-200">
+                    <span class="text-8xl block mb-4">💔</span>
+                    <h2 class="text-4xl font-black text-red-700 mb-4">انتهت اللعبة!</h2>
+                    <p class="text-xl text-gray-700 mb-6">لقد نفدت محاولاتك. حظاً أوفر في المرة القادمة.</p>
+                    <div class="bg-white inline-block px-8 py-4 rounded-lg shadow-md mb-8">
+                        <p class="text-gray-500 text-sm mb-1">النقاط التي جمعتها</p>
+                        <p class="text-5xl font-extrabold text-gray-600">${gameState.score}</p>
+                    </div>
+                    <!-- Play Again Button Removed -->
                 </div>
             `;
         };
         
-        // Helper function to get the current step name in Arabic
         const getCurrentStepName = () => {
             if (gameState.step === 2) return 'الانتهاء';
-            if (gameState.assembledCount === TOTAL_PARTS) return 'التجميع اكتمل';
-            return `تحدي الجزء ${gameState.assembledCount + 1} من 8`;
+            if (gameState.step === 3) return 'خسارة';
+            return `تجميع الجزء ${gameState.currentQuestionIndex + 1} من 8`;
         }
 
-        /**
-         * Main UI update function.
-         */
         window.updateUI = () => {
-            // Update the score display
-            const scoreElement = document.getElementById('score-value');
-            if (scoreElement) {
-                scoreElement.textContent = gameState.score;
-            }
+            updateHeaderUI();
 
-            // Update the step name display
-            const stepElement = document.getElementById('step-name');
-            if (stepElement) {
-                stepElement.textContent = getCurrentStepName();
-            }
-
-            // Render the main content based on the step
-            if (gameState.assembledCount < TOTAL_PARTS) {
+            if (gameState.step === 1) {
                 renderStep1QuizAndAssembly();
-            } else {
+            } else if (gameState.step === 2) {
                  renderStep2Complete();
+            } else if (gameState.step === 3) {
+                renderStep3GameOver();
             }
         };
         
-        /**
-         * Resets and starts the game.
-         */
         window.initializeGame = () => {
-            // Reset state
+            // cleanup modal if exists from previous game
+            const modal = document.getElementById('reward-modal');
+            if(modal) modal.remove();
+
             gameState = {
                 step: 1, 
                 assembledCount: 0,
                 parts: {},
                 score: 0,
                 currentQuestionIndex: 0, 
-                questions: []
+                questions: [],
+                isProcessing: false,
+                lives: 3,
+                timeLeft: TIME_LIMIT_PER_QUESTION,
+                timer: null
             };
             
-            // Generate new data
             generateDimensions();
             generateQuestions();
-            
-            // Render UI
             updateUI();
+            startTimer(); // Start timer immediately
         }
 
-        // --- Initialization ---
         window.onload = initializeGame;
     </script>
 
-    <div class="max-w-7xl mx-auto space-y-8">
-        <header class="text-center bg-white p-6 rounded-xl shadow-lg border-b-4 border-blue-500">
-            <h1 class="text-4xl font-black text-gray-900">
-                مصنع الروبوت: تحدي القياس والتجميع المتسلسل
-            </h1>
-            <p class="mt-2 text-gray-600">
-                المرحلة الحالية: <span id="step-name" class="font-bold text-red-500">تحدي القياس...</span>
-                 | <span class="font-bold text-indigo-500">النقاط: </span><span id="score-value" class="font-bold text-indigo-500">0</span>
-            </p>
+    <div class="max-w-6xl mx-auto space-y-6">
+        <header class="text-center bg-white p-4 md:p-6 rounded-xl shadow-lg border-b-4 border-blue-500 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-right w-full md:w-auto">
+                <h1 class="text-2xl md:text-3xl font-black text-gray-900">مصنع الروبوت</h1>
+                <p class="text-sm text-gray-500">تحدي الرياضيات والتجميع</p>
+            </div>
+            
+            <div class="flex gap-4 items-center justify-between w-full md:w-auto">
+                <!-- Hearts Display -->
+                <div class="bg-red-50 px-4 py-2 rounded-lg border border-red-100 flex flex-col items-center">
+                    <span class="text-xs text-gray-500 font-bold mb-1">المحاولات</span>
+                    <div id="hearts-container" class="flex">
+                        <!-- Hearts injected via JS -->
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 px-4 py-2 rounded-lg border border-gray-200 text-center">
+                    <span class="block text-xs text-gray-500 font-bold">المرحلة</span>
+                    <span id="step-name" class="font-bold text-blue-600 text-sm">...</span>
+                </div>
+                
+                <div class="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-200 text-center">
+                    <span class="block text-xs text-gray-500 font-bold">النقاط</span>
+                    <span id="score-value" class="font-bold text-indigo-600 text-xl">0</span>
+                </div>
+            </div>
         </header>
 
-        <!-- Game Content Container -->
-        <div id="game-content" class="bg-white p-8 rounded-xl shadow-2xl min-h-[700px]">
-            <!-- Content will be injected here by JavaScript based on the current step -->
+        <div id="game-content" class="bg-white p-6 md:p-8 rounded-xl shadow-2xl min-h-[600px]">
+            <!-- Content injected here -->
         </div>
-
     </div>
 
 </body>
